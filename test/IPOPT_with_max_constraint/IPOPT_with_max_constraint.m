@@ -27,7 +27,8 @@ Prob = struct('x', [lambda; eta], 'f', J, 'g', g, 'p', s);
 
 Option = struct;
 Option.ipopt.tol = 1e-6;
-
+Option.print_time = true;
+Option.record_time = true;
 x_Init = [0; 1];
 s_Init = 1e-6;
 
@@ -36,7 +37,8 @@ solver = nlpsol('solver', 'ipopt', Prob, Option);
 % 
 solution = solver('x0', x_Init, 'p', s_Init,...
     'lbg', zeros(size(g, 1), 1), 'ubg', inf*ones(size(g, 1), 1));
-
-%
+% methods(solver)
+% properties(solver)
+% solver.print_options
 x_Opt = full(solution.x);
 J_opt = full(solution.f);

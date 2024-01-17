@@ -18,6 +18,13 @@ classdef OCPEC_Formulation < handle
         x % differentiable state
         u % control input
         lambda % algebraic variable  
+
+        xMax % x upper bound
+        xMin % x lower bound
+        uMax % u upper bound
+        uMin % u lower bound
+        lambdaMax % lambda upper bound
+        lambdaMin % lambda lower bound
         
         L_T % terminal cost
         L_S % stage cost   
@@ -47,8 +54,9 @@ classdef OCPEC_Formulation < handle
                 TimeHorizon, nStages, timeStep,...
                 x0, xRef,...
                 x, u, lambda,...
+                xMax, xMin, uMax, uMin, lambdaMax, lambdaMin,...
                 L_T, L_S,...
-                f, g, F, VISetType, bl, bu,...
+                f, g, F, VISetType,...
                 G, C)
             %OCPEC_Formulation: Construct an instance of this class
             %   Detailed explanation goes here
@@ -59,10 +67,16 @@ classdef OCPEC_Formulation < handle
             % initial and reference state
             self.x0 = x0;
             self.xRef = xRef;             
-            % variable
+            % variable and their bounds
             self.x = x;
             self.u = u;
-            self.lambda = lambda;        
+            self.lambda = lambda;   
+            self.xMax = xMax;
+            self.xMin = xMin;
+            self.uMax = uMax;
+            self.uMin = uMin;
+            self.lambdaMax = lambdaMax;
+            self.lambdaMin = lambdaMin;            
             % cost function
             self.L_T = L_T;
             self.L_S = L_S;
@@ -71,16 +85,9 @@ classdef OCPEC_Formulation < handle
             self.g = g;
             self.F = F;             
             self.VISetType = VISetType;
-            switch self.VISetType
-                case 'box_constraint'
-                    self.bl = bl;
-                    self.bu = bu;
-                case 'nonnegative_orthant'
-                    self.bl = 0;
-                    self.bu = inf;
-                otherwise
-                    self.bl = [];
-                    self.bu = [];
+            if strcmp(self.VISetType, 'box_constraint')
+                self.bl = lambdaMin;
+                self.bu = lambdaMax;
             end
             % inequality and equality path constraint
             self.G = G;

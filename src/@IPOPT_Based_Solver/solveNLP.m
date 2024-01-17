@@ -71,10 +71,11 @@ p_j = p_Init;
 
 for j = 1 : continuationStepNum
     %% step 1: solve a NLP with given p
+    % solve problem
     solution_j = self.Solver('x0', z_Init_j, 'p', p_j,...
         'lbg', [zeros(NLP.Dim.h, 1); zeros(NLP.Dim.c, 1)],...
         'ubg', [zeros(NLP.Dim.h, 1); inf*ones(NLP.Dim.c, 1)]);
-
+    % extract solution and information
     z_Opt_j = full(solution_j.x);
     J_Opt_j = full(solution_j.f);
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);

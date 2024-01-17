@@ -68,8 +68,12 @@ classdef NLP_Formulation < handle
             self.d_grad = d_grad;
             self.d_hessian = d_hessian;
             
-            %% create a Strongly Concave Maximization Problem to evaluate variable omega (or omega_a, omega_b) used in the gap function PHI (or PHIab)
-            self.OmegaEvalProb = self.createStronglyConcaveMaxProblem(OCPEC);          
+            %% create a Strongly Concave Maximization Problem to evaluate variable omega (or omega_a, omega_b) used in the gap function PHI (or PHIab)                     
+            if strcmp(self.relaxProbType, 'KKT_based')
+                self.OmegaEvalProb = [];
+            else
+                self.OmegaEvalProb = self.createStronglyConcaveMaxProblem(OCPEC);
+            end
             
             %% discretize OCPEC into NLP 
             switch self.relaxProbType

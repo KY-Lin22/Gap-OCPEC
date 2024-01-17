@@ -14,25 +14,26 @@ function nlp = createNLP_D_Gap_Based(self, OCPEC)
 %  s.t. h(z, p) = 0,
 %       c(z, p) >= 0
 % where: (1) z: collects all the variables to be optimized and arranged in a stagewise manner
-%            z = [z_1;...z_n;...z_N] and z_n = [x_n; u_n; lambda_n; eta_n] 
+%            z = [z_1;...z_n;...z_N] and z_n = [x_n; u_n; lambda_n; eta_n; w_n] 
 %            with x_n:      system state
 %                 u_n:      control                 
 %                 lambda_n: algebraic variable   
 %                 eta_n:    auxiliary variable for VI function F in gap function
+%                 w_n:      scalar auxiliary variable to transfer gap function inequality into equality
 %        (2) p: collects all the NLP problem parameters
 %            p = s
 %            with s:  nonnegative relax parameter for gap constraints
 %        (3) J: cost function J = sum(J_n) and J_n = J_stage_n
 %            with J_stage_n:   stage cost defined in OCPEC
 %        (4) h: equality constraint arranged in a stagewise manner
-%            h = [h_1;...h_n;...h_N] and h_n = [f_n; F_n - eta_n; C_n]     
-%            with f_n:   discretized state equation f defined in OCPEC
-%                 F_n:   VI function
-%                 C_n:   path equality constraints C defined in OCPEC   
+%            h = [h_1;...h_n;...h_N] and h_n = [f_n; F_n - eta_n; phi_ab_n - w_n; C_n]     
+%            with f_n:      discretized state equation f defined in OCPEC
+%                 F_n:      VI function
+%                 phi_ab_n: D gap constraint (variable: lambda_n, eta_n)
+%                 C_n:      path equality constraints C defined in OCPEC   
 %        (5) c: inequality constraint arranged in a stagewise manner
-%            c = [c_1;...c_n;...c_N] and c_n = [s - phi_ab_n; G_n] 
-%            with phi_ab_n: D gap constraint (variable: lambda_n, eta_n)
-%                 G_n: path inequality constraints G defined in OCPEC
+%            c = [c_1;...c_n;...c_N] and c_n = [s - w_n; G_n] 
+%            with G_n: path inequality constraints G defined in OCPEC
 %
 % output: nlp is a structure with fields:
 %         z, omega: variable
@@ -44,22 +45,24 @@ import casadi.*
 %% initialize NLP variable and function (stagewise, capital)
 % define auxiliary variable dimension
 eta_Dim = OCPEC.Dim.lambda;
+w_Dim = 1;
 
 % initialize problem variable 
 X = SX.sym('X', OCPEC.Dim.x, OCPEC.nStages); 
 U = SX.sym('U', OCPEC.Dim.u, OCPEC.nStages);
 LAMBDA = SX.sym('LAMBDA', OCPEC.Dim.lambda, OCPEC.nStages);
 ETA = SX.sym('ETA', eta_Dim, OCPEC.nStages);
+W = SX.sym('W', w_Dim, OCPEC.nStages); % auxiliary variable for gap function
 
-Z = [X; U; LAMBDA; ETA]; % NLP variable in stagewise manner
+Z = [X; U; LAMBDA; ETA; W]; % NLP variable in stagewise manner
 
 % initialize problem parameter
 s = SX.sym('s', 1, 1);
 
 % initialize problem cost and constraint function
 J = 0;
-H = SX(OCPEC.Dim.x + eta_Dim + OCPEC.Dim.C, OCPEC.nStages); 
-C = SX(1 + OCPEC.Dim.G, OCPEC.nStages);
+H = SX(OCPEC.Dim.x + eta_Dim + w_Dim + OCPEC.Dim.C, OCPEC.nStages); 
+C = SX(w_Dim + OCPEC.Dim.G, OCPEC.nStages);
 
 %% formulate NLP function
 for n = 1 : OCPEC.nStages
@@ -73,6 +76,7 @@ for n = 1 : OCPEC.nStages
     u_n = U(:, n);
     lambda_n = LAMBDA(:, n);
     eta_n = ETA(:, n);
+    w_n = W(:, n);
     
     % NLP stage cost function
     J_stage_n = OCPEC.timeStep * OCPEC.FuncObj.L_S(x_n, u_n, lambda_n);
@@ -141,28 +145,28 @@ for n = 1 : OCPEC.nStages
             end            
     end    
     % summarize NLP constraint
-    h_n = [f_n; F_n - eta_n; C_n];
+    h_n = [f_n; F_n - eta_n; phi_ab_n - w_n; C_n];
     H(:, n) = h_n;    
     
-    c_n = [s - phi_ab_n; G_n];
+    c_n = [s - w_n ; G_n];
     C(:, n) = c_n;     
 end
 
 %% formulate NLP variable and function (column, lowercase)
 % problem variable
-z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + eta_Dim) * OCPEC.nStages, 1);
+z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + eta_Dim + w_Dim) * OCPEC.nStages, 1);
 % problem parameter
 p = s;
 % constraint
-h = reshape(H, (OCPEC.Dim.x + eta_Dim + OCPEC.Dim.C) * OCPEC.nStages, 1);
-c = reshape(C, (1 + OCPEC.Dim.G) * OCPEC.nStages, 1);
+h = reshape(H, (OCPEC.Dim.x + eta_Dim + w_Dim + OCPEC.Dim.C) * OCPEC.nStages, 1);
+c = reshape(C, (w_Dim + OCPEC.Dim.G) * OCPEC.nStages, 1);
 % size and node point of variable and function (NLP)
 Dim.z = size(z, 1);
 Dim.h = size(h, 1);
 Dim.c = size(c, 1);
-Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, eta_Dim]); % node point after reshaping z into stagewise Z
-Dim.h_Node = cumsum([OCPEC.Dim.x, eta_Dim, OCPEC.Dim.C]); % node point after reshaping h into stagewise H
-Dim.c_Node = cumsum([1, OCPEC.Dim.G]); % node point after reshaping c into stagewise C
+Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, eta_Dim, w_Dim]); % node point after reshaping z into stagewise Z
+Dim.h_Node = cumsum([OCPEC.Dim.x, eta_Dim, w_Dim, OCPEC.Dim.C]); % node point after reshaping h into stagewise H
+Dim.c_Node = cumsum([w_Dim, OCPEC.Dim.G]); % node point after reshaping c into stagewise C
 
 %% create output struct
 nlp = struct('z', z, 'p', p,...

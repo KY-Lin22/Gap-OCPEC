@@ -55,11 +55,11 @@ mov = zeros(height*3/2, width*3/2, 1, nStages + 1, 'uint8');
 % pre allocate
 plot(baseline_X, baseline_Y, '.-k', 'MarkerSize', 1, 'LineWidth', 2);
 hold on
-plot(cart_1_ref,  'FaceAlpha', 0.01)
+plot(cart_1_ref,  'FaceAlpha', 0.01, 'LineStyle', '--')
 hold on
-plot(cart_2_ref,  'FaceAlpha', 0.01)
+plot(cart_2_ref,  'FaceAlpha', 0.01, 'LineStyle', '--')
 hold on
-plot(cart_3_ref,  'FaceAlpha', 0.01)
+plot(cart_3_ref,  'FaceAlpha', 0.01, 'LineStyle', '--')
 hold on
 cart_1 = plot(cart_1_position{1, 1});
 hold on
@@ -67,6 +67,10 @@ cart_2 = plot(cart_2_position{1, 1});
 hold on
 cart_3 = plot(cart_3_position{1, 1});
 hold on
+% axisLimit_X = baseline_X;
+% axisLimit_Y = [-1; inf];
+% axis([axisLimit_X; axisLimit_Y]);
+axis equal
 axisLimit_X = baseline_X;
 axisLimit_Y = [-1; 3];
 axis([axisLimit_X; axisLimit_Y]);
@@ -80,15 +84,24 @@ for n = 1 : nStages + 1
     set(cart_3, 'Shape', cart_3_position{1, n});
     set(timePrint, 'String', sprintf('Time: %0.2f sec', timeAxis(n)));
     % get frame as an image
-    f = getframe(gcf);
-    % Create a colormap for the first frame. for the rest of the frames, use the same colormap
+    frame = getframe(gcf);
+%     % Create a colormap for the first frame. for the rest of the frames, use the same colormap
+%     if n == 1
+%         [mov(:,:,1,n), map] = rgb2ind(f.cdata, 256, 'nodither');
+% 
+%     else
+%         mov(:,:,1,n) = rgb2ind(f.cdata, map, 'nodither');
+%     end
+        
     if n == 1
-        [mov(:,:,1,n), map] = rgb2ind(f.cdata, 256, 'nodither');
-    else
-        mov(:,:,1,n) = rgb2ind(f.cdata, map, 'nodither');
+        animation = VideoWriter('ThreeCarts.mp4', 'MPEG-4');
+        open(animation);
     end
+    writeVideo(animation, frame);
+    
 end
 % create an animated GIF
-imwrite(mov, map, 'ThreeCarts.gif', 'DelayTime', 0, 'LoopCount', inf)
+% imwrite(mov, map, 'ThreeCarts.gif', 'DelayTime', 0, 'LoopCount', inf)
 
+close(animation);
 end

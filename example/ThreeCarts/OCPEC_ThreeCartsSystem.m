@@ -37,12 +37,13 @@ lambdaMax = inf * ones(lambdaDim, 1);
 lambdaMin = zeros(lambdaDim, 1);
 
 % cost function
-xWeight = [100; 20; 100; 1; 1; 1];
-uWeight = 1;
+xWeight = [100; 100; 100; 0.1; 0.1; 0.1];
+uWeight = 0.1;
 L_S = 0.5 * (x - xRef)'*diag(xWeight)*(x - xRef)...
     + 0.5 * u'*diag(uWeight)*u;
-xWeight_T = [100; 20; 100; 100; 1; 100];
-L_T = 0.5 * (x - xRef)'*diag(xWeight_T)*(x - xRef);
+% xWeight_T = [100; 10; 100; 10; 1; 10];
+% L_T = 0.5 * (x - xRef)'*diag(xWeight_T)*(x - xRef);
+L_T = SX(0,1);
 
 % DVI
 f = [x(4);...

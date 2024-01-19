@@ -3,7 +3,7 @@ clc
 
 %% generate problem and solver
 relax_prob_type = 'Scholtes'; % 'primal_gap', 'D_gap'
-                                % 'Scholtes', 'Lin_Fukushima', 'Kadrani'
+                                % 'Scholtes', 'Lin_Fukushima', 
                                 % 'Kadrani', 'Kanzow_Schwartz'
                                 % 'Steffensen_Ulbrich'
 % two-dimension toy problem

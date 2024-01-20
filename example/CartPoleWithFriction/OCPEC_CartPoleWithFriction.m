@@ -30,8 +30,11 @@ lambdaMin = -2;
 % cost function
 xWeight_S = [1; 100; 1; 1];
 uWeight_S = 1;
+lambdaWeight_S = 1;
 L_S = 0.5 * (x - xRef)'*diag(xWeight_S)*(x - xRef)...
-    + 0.5 * u'*diag(uWeight_S)*u;
+    + 0.5 * u'*diag(uWeight_S)*u ...
+    + 0.5 * lambda'*diag(lambdaWeight_S)*lambda;
+
 xWeight_T = [1; 100; 10; 20];
 L_T = 0.5 * (x - xRef)'*diag(xWeight_T)*(x - xRef);
 

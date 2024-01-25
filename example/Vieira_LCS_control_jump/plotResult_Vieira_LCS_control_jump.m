@@ -21,17 +21,17 @@ xlabel('time [s]')
 title('differential state')
 
 subplot(2,2,2)
-plot(timeAxis(2:end), U_Opt(1,:), 'LineWidth', 1.2)
-xlabel('time [s]')
-title('control input')
-
-subplot(2,2,3)
-plot(timeAxis(2:end), LAMBDA_Opt(1, :), 'r', 'LineWidth', 1.2)
+plot(timeAxis(2:end), LAMBDA_Opt(1, :), 'r', 'LineWidth', 1.2, 'LineStyle', 'none', 'Marker', '.')
 xlabel('time [s]')
 title('algebraic variable')
 
+subplot(2,2,3)
+stairs(timeAxis(2:end), U_Opt(1,:), 'LineWidth', 1.2)
+xlabel('time [s]')
+title('control input')
+
 subplot(2,2,4)
-plot(timeAxis(2:end), F_Opt(1, :), 'b', 'LineWidth', 1.2)
+plot(timeAxis(2:end), F_Opt(1, :), 'b', 'LineWidth', 1.2, 'LineStyle', 'none', 'Marker', '.')
 xlabel('time [s]')
 title('VI function')
 

@@ -16,23 +16,23 @@ figure(111)
 subplot(2,2,1)
 plot(timeAxis, [OCPEC.x0(1), X_Opt(1, :)], 'b',...
      timeAxis, [OCPEC.x0(2), X_Opt(2, :)], 'g',...
-     timeAxis, [OCPEC.x0(3), X_Opt(3, :)], 'r','LineWidth',1.2)
+     timeAxis, [OCPEC.x0(3), X_Opt(3, :)], 'r','LineWidth',1.2, 'LineStyle', 'none', 'Marker', '.')
 legend('x_1', 'x_2', 'x_3')
 xlabel('time [s]')
 title('differential state')
 
 subplot(2,2,2)
-plot(timeAxis(2:end), U_Opt(1,:), 'LineWidth', 1.2)
-xlabel('time [s]')
-title('control input')
-
-subplot(2,2,3)
-plot(timeAxis(2:end), LAMBDA_Opt(1, :), 'r', 'LineWidth', 1.2)
+plot(timeAxis(2:end), LAMBDA_Opt(1, :), 'r', 'LineWidth', 1.2, 'LineStyle', 'none', 'Marker', '.')
 xlabel('time [s]')
 title('algebraic variable')
 
+subplot(2,2,3)
+stairs(timeAxis(2:end), U_Opt(1,:), 'LineWidth', 1.2)
+xlabel('time [s]')
+title('control input')
+
 subplot(2,2,4)
-plot(timeAxis(2:end), F_Opt(1, :), 'b', 'LineWidth', 1.2)
+plot(timeAxis(2:end), F_Opt(1, :), 'b', 'LineWidth', 1.2, 'LineStyle', 'none', 'Marker', '.')
 xlabel('time [s]')
 title('VI function')
 end

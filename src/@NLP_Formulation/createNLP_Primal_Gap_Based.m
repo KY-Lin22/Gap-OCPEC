@@ -105,22 +105,33 @@ for n = 1 : OCPEC.nStages
     % primal gap function phi (function of lambda, eta, but it needs an intermedia variable omega which is a function of lambda, eta)   
     switch OCPEC.VISetType
         case 'box_constraint'
+            %
             switch self.stronglyConvexFuncType
                 case 'quadratic'
-                    % explicit expression of omega
-                    omega_n = min(max(OCPEC.bl, lambda_n - eta_n), OCPEC.bu); % project into [bl, bu]
-                    phi_n = self.d_func(lambda_n) - self.d_func(omega_n) + (eta_n' - self.d_grad(lambda_n)) * (lambda_n - omega_n);
+                    % omega has an explicit expression: projection of the stationary point into [bl, bu]
+                    omega_n = min(max(OCPEC.bl, lambda_n - eta_n), OCPEC.bu);  
+                    phi_n = self.d_func(lambda_n) - self.d_func(omega_n) ...
+                        + (eta_n' - self.d_grad(lambda_n)) * (lambda_n - omega_n);
                 case 'general'
-                    % To Be Done (omega also has a explicit expression: projection of the stationary point)
+                    % To Be Done 
+                    % omega also has an explicit expression: projection of the stationary point into [bl, bu]
+                    omega_n = []; 
+                    phi_n = self.d_func(lambda_n) - self.d_func(omega_n) ...
+                        + (eta_n' - self.d_grad(lambda_n)) * (lambda_n - omega_n);
             end
         case 'nonnegative_orthant'
+            %
             switch self.stronglyConvexFuncType
                 case 'quadratic'
-                    % explicit expression of omega
-                    omega_n = max(zeros(OCPEC.Dim.lambda, 1), lambda_n - eta_n);% project into [0, inf]
-                    phi_n = self.d_func(lambda_n) - self.d_func(omega_n) + (eta_n' - self.d_grad(lambda_n)) * (lambda_n - omega_n);
+                    % explicit expression of phi (ref: P940, Finite dim VI and CP, 2003, snet c = 1 in the third equation)
+                    max_operator = max(zeros(OCPEC.Dim.lambda, 1), eta_n - lambda_n);
+                    phi_n = 1/2 * ((eta_n' * eta_n) - (max_operator' * max_operator));                    
                 case 'general'
-                    % To Be Done (omega also has a explicit expression: projection of the stationary point)
+                    % To Be Done 
+                    % omega has a explicit expression: projection of the stationary point into [0, inf]
+                    omega_n = []; 
+                    phi_n = self.d_func(lambda_n) - self.d_func(omega_n) ...
+                        + (eta_n' - self.d_grad(lambda_n)) * (lambda_n - omega_n);
             end
 
         case 'finitely_representable'

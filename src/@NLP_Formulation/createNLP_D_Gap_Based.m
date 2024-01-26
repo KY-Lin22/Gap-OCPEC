@@ -64,6 +64,10 @@ J = 0;
 H = SX(OCPEC.Dim.x + eta_Dim + w_Dim + OCPEC.Dim.C, OCPEC.nStages); 
 C = SX(w_Dim + OCPEC.Dim.G, OCPEC.nStages);
 
+% D gap functino parameter
+a = self.D_gap_param.a;
+b = self.D_gap_param.b;
+
 %% formulate NLP function
 for n = 1 : OCPEC.nStages
     % load variable
@@ -98,37 +102,48 @@ for n = 1 : OCPEC.nStages
     % path equality constraints C defined in OCPEC
     C_n = OCPEC.FuncObj.C(x_n, u_n);    
     
-    % D gap function phi_ab (function of lambda, eta, but it needs intermedia variables omega_a, omega_b which are functions of lambda, eta)  
+    % D gap function phi_ab (function of lambda, eta, but it needs intermedia variables omega_a, omega_b which are functions of lambda, eta)
     switch OCPEC.VISetType
         case 'box_constraint'
             switch self.stronglyConvexFuncType
+                %
                 case 'quadratic'
-                    a = self.D_gap_param.a;
-                    b = self.D_gap_param.b;
-                    % explicit expression of omega
-                    omega_a_n = min(max(OCPEC.bl, lambda_n - (1/a) * eta_n), OCPEC.bu); % project into [bl, bu]
-                    omega_b_n = min(max(OCPEC.bl, lambda_n - (1/b) * eta_n), OCPEC.bu); % project into [bl, bu]  
+                    % omega has an explicit expression: projection of the stationary point into [bl, bu]
+                    omega_a_n = min(max(OCPEC.bl, lambda_n - (1/a) * eta_n), OCPEC.bu); 
+                    omega_b_n = min(max(OCPEC.bl, lambda_n - (1/b) * eta_n), OCPEC.bu); 
                     % phi_ab_n
                     q_a_n = self.d_func(lambda_n) - self.d_func(omega_a_n) + self.d_grad(lambda_n) * (omega_a_n - lambda_n);
                     q_b_n = self.d_func(lambda_n) - self.d_func(omega_b_n) + self.d_grad(lambda_n) * (omega_b_n - lambda_n);
                     phi_ab_n = (omega_b_n - omega_a_n)' * eta_n + a * q_a_n - b * q_b_n;
                 case 'general'
-                    % To Be Done (omega also has a explicit expression: projection of the stationary point)
+                    % To Be Done 
+                    % omega also has an explicit expression: projection of the stationary point into [bl, bu]
+                    omega_a_n = [];
+                    omega_b_n = [];
+                    % phi_ab_n
+                    q_a_n = self.d_func(lambda_n) - self.d_func(omega_a_n) + self.d_grad(lambda_n) * (omega_a_n - lambda_n);
+                    q_b_n = self.d_func(lambda_n) - self.d_func(omega_b_n) + self.d_grad(lambda_n) * (omega_b_n - lambda_n);
+                    phi_ab_n = (omega_b_n - omega_a_n)' * eta_n + a * q_a_n - b * q_b_n;
             end
         case 'nonnegative_orthant'
+            %
             switch self.stronglyConvexFuncType
-                case 'quadratic'
-                    a = self.D_gap_param.a;
-                    b = self.D_gap_param.b;                    
-                    % explicit expression of omega
-                    omega_a_n = max(zeros(OCPEC.Dim.lambda, 1), lambda_n - (1/a) * eta_n);
-                    omega_b_n = max(zeros(OCPEC.Dim.lambda, 1), lambda_n - (1/b) * eta_n);
+                case 'quadratic'                 
+                    % explicit expression of phi_ab_n (ref: P940, Finite dim VI and CP, 2003, the fourth equation)
+                    max_operator_a = max(zeros(OCPEC.Dim.lambda, 1), eta_n - a * lambda_n);
+                    max_operator_b = max(zeros(OCPEC.Dim.lambda, 1), eta_n - b * lambda_n);
+                    phi_ab_n = (1/(2*a) - 1/(2*b)) * (eta_n' * eta_n) ...
+                        - 1/(2*a) * (max_operator_a' * max_operator_a) ...
+                        + 1/(2*b) * (max_operator_b' * max_operator_b);
+                case 'general'
+                    % To Be Done 
+                    % omega has an explicit expression: projection of the stationary point into [0, inf]
+                    omega_a_n = [];
+                    omega_b_n = [];
                     % phi_ab_n
                     q_a_n = self.d_func(lambda_n) - self.d_func(omega_a_n) + self.d_grad(lambda_n) * (omega_a_n - lambda_n);
                     q_b_n = self.d_func(lambda_n) - self.d_func(omega_b_n) + self.d_grad(lambda_n) * (omega_b_n - lambda_n);
                     phi_ab_n = (omega_b_n - omega_a_n)' * eta_n + a * q_a_n - b * q_b_n;
-                case 'general'
-                    % To Be Done (omega also has a explicit expression: projection of the stationary point)
             end
 
         case 'finitely_representable'

@@ -20,8 +20,8 @@ function nlp = createNLP_KKT_Based(self, OCPEC)
 %                 lambda_n: algebraic variable   
 %                 zeta_n:   dual variable for inequality g formulating VI set K   
 %                 w_n:      auxiliary variable to transfer inequality g into equality
-%        (2) p: collects all the NLP problem parameters
-%            p = s
+%        (2) p: collects all the NLP problem parameters p = [s]
+%            with s:  relaxation parameter
 %        (3) J: cost function J = sum(J_n) and J_n = J_stage_n
 %            with J_stage_n:   stage cost defined in OCPEC
 %        (4) h: equality constraint arranged in a stagewise manner
@@ -32,7 +32,10 @@ function nlp = createNLP_KKT_Based(self, OCPEC)
 %                 g_n:       inequality constraints g formulating VI set K
 %                 C_n:       path equality constraints C defined in OCPEC  
 %        (5) c: inequality constraint arranged in a stagewise manner
-%            c = [c_1;...c_n;...c_N] and c_n = [zeta_n; w_n; s - zeta_n .* w_n; G_n] 
+%            c = [c_1;...c_n;...c_N] and 
+%            'Scholtes': c_n = [zeta_n; w_n; s - zeta_n .* w_n; G_n] 
+%            'Lin_Fukushima': c_n = [s^2 - zeta_n .* w_n; (zeta_n + s) .* (w_n + s) - s^2; G_n] 
+%            'Kadrani': c_n = [zeta_n + s; w_n + s; - (zeta_n - s) .* (w_n - s); G_n] 
 %            with G_n: path inequality constraints G defined in OCPEC
 % output: nlp is a structure with fields:
 %         z, omega: variable
@@ -61,7 +64,16 @@ s = SX.sym('s', 1, 1);
 % initialize problem cost and constraint function
 J = 0;
 H = SX(OCPEC.Dim.x + OCPEC.Dim.lambda + OCPEC.Dim.g + OCPEC.Dim.C, OCPEC.nStages); 
-C = SX(3 * OCPEC.Dim.g + OCPEC.Dim.G, OCPEC.nStages);
+
+switch self.KKT_relaxation_strategy
+    case 'Scholtes'
+        C = SX(3 * OCPEC.Dim.g + OCPEC.Dim.G, OCPEC.nStages);
+    case 'Lin_Fukushima'
+        C = SX(2 * OCPEC.Dim.g + OCPEC.Dim.G, OCPEC.nStages);
+    case 'Kadrani'
+        C = SX(3 * OCPEC.Dim.g + OCPEC.Dim.G, OCPEC.nStages);
+end
+
 
 %% formulate NLP function
 for n = 1 : OCPEC.nStages 
@@ -104,8 +116,14 @@ for n = 1 : OCPEC.nStages
     % summarize NLP constraint
     h_n = [f_n; F_n - glambda_n' * zeta_n; g_n - w_n; C_n];
     H(:, n) = h_n;    
-    
-    c_n = [zeta_n; w_n; s - zeta_n .* w_n; G_n];
+    switch self.KKT_relaxation_strategy
+        case 'Scholtes'
+            c_n = [zeta_n; w_n; s - zeta_n .* w_n; G_n];
+        case 'Lin_Fukushima'
+            c_n = [s^2 - zeta_n .* w_n; (zeta_n + s) .* (w_n + s) - s^2; G_n];
+        case 'Kadrani'
+            c_n = [zeta_n + s; w_n + s; - (zeta_n - s) .* (w_n - s); G_n];
+    end
     C(:, n) = c_n;     
 end
 
@@ -116,15 +134,29 @@ z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + zeta_Dim + w_Dim)
 p = s;
 % constraint
 h = reshape(H, (OCPEC.Dim.x + OCPEC.Dim.lambda + OCPEC.Dim.g + OCPEC.Dim.C) * OCPEC.nStages, 1);
-c = reshape(C, (3 * OCPEC.Dim.g + OCPEC.Dim.G) * OCPEC.nStages, 1);
-
-% size and node point of variable and function (NLP)
+switch self.KKT_relaxation_strategy
+    case 'Scholtes'
+        c = reshape(C, (3 * OCPEC.Dim.g + OCPEC.Dim.G) * OCPEC.nStages, 1);
+    case 'Lin_Fukushima'
+        c = reshape(C, (2 * OCPEC.Dim.g + OCPEC.Dim.G) * OCPEC.nStages, 1);
+    case 'Kadrani'
+        c = reshape(C, (3 * OCPEC.Dim.g + OCPEC.Dim.G) * OCPEC.nStages, 1);
+end
+% size of variable and function (NLP)
 Dim.z = size(z, 1);
 Dim.h = size(h, 1);
 Dim.c = size(c, 1);
-Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, zeta_Dim, w_Dim]); % node point after reshaping z into stagewise Z
-Dim.h_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.lambda, OCPEC.Dim.g, OCPEC.Dim.C]); % node point after reshaping h into stagewise H
-Dim.c_Node = cumsum([OCPEC.Dim.g, OCPEC.Dim.g, OCPEC.Dim.g, OCPEC.Dim.G]); % node point after reshaping c into stagewise C
+% node point after reshaping z, h, c into stagewise Z, H, C
+Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, zeta_Dim, w_Dim]); 
+Dim.h_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.lambda, OCPEC.Dim.g, OCPEC.Dim.C]); 
+switch self.KKT_relaxation_strategy
+    case 'Scholtes'
+        Dim.c_Node = cumsum([OCPEC.Dim.g, OCPEC.Dim.g, OCPEC.Dim.g, OCPEC.Dim.G]); 
+    case 'Lin_Fukushima'
+        Dim.c_Node = cumsum([OCPEC.Dim.g, OCPEC.Dim.g, OCPEC.Dim.G]); 
+    case 'Kadrani'
+        Dim.c_Node = cumsum([OCPEC.Dim.g, OCPEC.Dim.g, OCPEC.Dim.g, OCPEC.Dim.G]); 
+end
 
 %% create output struct
 nlp = struct('z', z, 'p', p,...

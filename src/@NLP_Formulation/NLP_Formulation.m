@@ -27,6 +27,10 @@ classdef NLP_Formulation < handle
             'quadratic',...
             'general'...
             })} = 'quadratic' 
+        KKT_relaxation_strategy char{mustBeMember(KKT_relaxation_strategy, {...
+            'Scholtes',...
+            'Lin_Fukushima',...
+            'Kadrani'})} = 'Scholtes'
         d_func % function object, strongly convex function d  
         d_grad % function object, gradient of the strongly convex function d
         d_hessian % function object, hessian of the strongly convex function d  
@@ -48,7 +52,7 @@ classdef NLP_Formulation < handle
         function self = NLP_Formulation(OCPEC, Option)
             %NLP_Formulation: Construct an instance of this class
             %   Detailed explanation goes here
-            %% specify type of gap function and strongly convex function
+            %% specify properties
             if ~isempty(Option.relaxProbType)
                 self.relaxProbType = Option.relaxProbType;
             end
@@ -61,7 +65,10 @@ classdef NLP_Formulation < handle
             if ~isempty(Option.D_gap_param.b)
                 self.D_gap_param.b = Option.D_gap_param.b;
             end            
-            
+            if ~isempty(Option.KKT_relaxation_strategy)
+                self.KKT_relaxation_strategy = Option.KKT_relaxation_strategy;
+            end
+
             %% create a Strongly Convex Function d and its derivative used in the gap functions PHI (or PHIab)
             [d_func, d_grad, d_hessian] = self.createStronglyConvexFunction(OCPEC);
             self.d_func = d_func;

@@ -230,9 +230,9 @@ for i = 1 : length(x)
 end
 % mesh and colour
 [X, Y] = meshgrid(x, y);
-C = 1.*Z_surf';
+C = 1.*Z_surf;
 figure(3)
-sfc_handle = surfc(X, Y, Z_surf', C, 'FaceAlpha',0.5, 'EdgeColor', 'none');
+sfc_handle = surfc(X, Y, Z_surf, C, 'FaceAlpha',0.5, 'EdgeColor', 'none');
 contourProperty = sfc_handle(2);
 contourProperty.ContourZLevel = -max(max(Z_surf));
 contourProperty.LineWidth = 1;

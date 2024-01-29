@@ -1,4 +1,4 @@
-function FuncObj = createFuncObj(self, nlp)
+function FuncObj = create_FuncObj(self, nlp)
 %UNTITLED10 Summary of this function goes here
 %   Detailed explanation goes here
 import casadi.*

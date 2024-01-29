@@ -45,7 +45,7 @@ L_S = 0.5 * (x - xRef)'*diag(xWeight_S)*(x - xRef)...
     + 0.5 * lambda'*diag(lambdaWeight_S)*lambda;
 xWeight_T = [100; 10; 100; 10; 1; 10];
 L_T = 0.5 * (x - xRef)'*diag(xWeight_T)*(x - xRef);
-% L_T = SX(0,1);
+% L_T = 0;
 
 % DVI
 f = [x(4);...

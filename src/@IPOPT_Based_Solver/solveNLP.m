@@ -57,10 +57,12 @@ while true
     end
 end
 
-% log (time, param, cost, KKT error, natRes)
+% log (time, param, cost, KKT error, stepSize, natRes)
 Log.param               = zeros(continuationStepNum, 1); % record relaxation parameter s 
 Log.cost                = zeros(continuationStepNum, 1);
 Log.KKT_error           = zeros(continuationStepNum, 3); % [primal, dual_scaled, total]
+Log.stepSize_primal     = zeros(continuationStepNum, 2); % [min, average]
+Log.stepSize_dual       = zeros(continuationStepNum, 2); % [min, average]
 Log.VI_natural_residual = zeros(continuationStepNum, 1);
 Log.iterNum             = zeros(continuationStepNum, 1);
 Log.timeElapsed         = zeros(continuationStepNum, 1); % elapsed time in each continuation step
@@ -81,25 +83,30 @@ for j = 1 : continuationStepNum
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
     KKT_error_dual_j = self.Solver.stats.iterations.inf_du(end); 
     VI_nat_res_j = self.evaluateNaturalResidual(z_Opt_j);
-    
+
     %% step 2: record and print information of the current continuation iterate
     Log.param(j) = p_j(1);
     Log.cost(j) = J_Opt_j;
     Log.KKT_error(j, :) = [KKT_error_primal_j, KKT_error_dual_j, max(KKT_error_primal_j, KKT_error_dual_j)];
+    Log.stepSize_primal(j, :) = [min(self.Solver.stats.iterations.alpha_pr(2:end)),...
+        sum(self.Solver.stats.iterations.alpha_pr(2:end))/(self.Solver.stats.iter_count)];
+    Log.stepSize_dual(j, :) = [min(self.Solver.stats.iterations.alpha_du(2:end)),...
+        sum(self.Solver.stats.iterations.alpha_du(2:end))/(self.Solver.stats.iter_count)];
     Log.VI_natural_residual(j) = VI_nat_res_j;
     Log.iterNum(j) = self.Solver.stats.iter_count;
     Log.timeElapsed(j) = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
     if mod(j, 10) == 1
         disp('---------------------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = ' continuation |    s     |   cost   |  KKT(P)  |  KKT(D)  | VI_nat_res | iterNum |  time(s) |';
+        headMsg = '  step | param(s) |   cost   |  KKT(primal/dual) | stepsize_p(min/ave) | stepsize_d(min/ave) | VI_nat_res | iterNum |  time(s) |';
         disp(headMsg)
     end
-    prevIterMsg = ['     ',...
-        num2str(j,'%10.2d'), '/', num2str(continuationStepNum,'%10.2d'),'    | ',...
+    prevIterMsg = [' ',...
+        num2str(j,'%10.2d'), '/', num2str(continuationStepNum,'%10.2d'),' | ',...
         num2str(Log.param(j), '%10.2e'),' | ',...
         num2str(Log.cost(j), '%10.2e'),' | ',...
-        num2str(Log.KKT_error(j, 1), '%10.2e'),' | ',...
-        num2str(Log.KKT_error(j, 2), '%10.2e'),' |  ',...
+        num2str(Log.KKT_error(j, 1 : 2), '%10.2e'),' | ',...
+        num2str(Log.stepSize_primal(j, :), '%10.2e'),' | ',...
+        num2str(Log.stepSize_dual(j, :), '%10.2e'),'  |  ',...
         num2str(Log.VI_natural_residual(j), '%10.2e'),'  |   ',...
         num2str(Log.iterNum(j), '%10.3d'),'   |  ',...
         num2str(Log.timeElapsed(j), '%10.4f'),'  | '];

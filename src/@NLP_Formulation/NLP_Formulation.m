@@ -15,28 +15,47 @@ classdef NLP_Formulation < handle
     %       c(z, p) >= 0
     %
     properties
-        relaxProbType char {mustBeMember(relaxProbType, {...
-            'generalized_primal_gap_constraint_based',...
-            'generalized_D_gap_constraint_based'...
+        relaxation_problem char {mustBeMember(relaxation_problem, {...
+            'gap_constraint_based',...
             'KKT_based'...
-            })} = 'generalized_primal_gap_constraint_based' 
-        D_gap_param = struct('a', 0.9, 'b', 1.1) % D gap function parameters: b > a > 0 (a ref value: a = 0.9. b = 1.1)
-                                                 % Ref: Theoretical and numerical investigation of the D-gap function for BVI, 
-                                                 % 1998, Mathematical Programming, C.Kanzow & M. Fukushima        
-        stronglyConvexFuncType char {mustBeMember(stronglyConvexFuncType, {...
-            'quadratic',...
-            'general'...
-            })} = 'quadratic' 
-        KKT_relaxation_strategy char{mustBeMember(KKT_relaxation_strategy, {...
+            })} = 'gap_constraint_based' 
+        gap_constraint_relaxation_strategy char {mustBeMember(gap_constraint_relaxation_strategy, {...
+            'generalized_primal_gap',...
+            'generalized_D_gap'})} = 'generalized_primal_gap'
+        KKT_complementarity_relaxation_strategy char {mustBeMember(KKT_complementarity_relaxation_strategy, {...
             'Scholtes',...
             'Lin_Fukushima',...
             'Kadrani'})} = 'Scholtes'
+
+        strongly_convex_func char {mustBeMember(strongly_convex_func, {...
+            'quadratic',...
+            'general'...
+            })} = 'quadratic'  % strongly convex function in Auchmuty's saddle function       
+        gap_func_smooth_param double {mustBeNonnegative} = 0.01 % used in CHKS smoothing function for max(0, x)
+        D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9. b = 1.1)
+        D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
+                                                        % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima          
+
+        state_equation_discretization char {mustBeMember(state_equation_discretization, {...
+            'implicit_Euler'})} = 'implicit_Euler'
+    end
+
+    properties
+        penalty_func % function object, penalty function for certain variables
+
+        discre_state_equ_func % function object, discretization state equation
+
         d_func % function object, strongly convex function d  
         d_grad % function object, gradient of the strongly convex function d
-        d_hessian % function object, hessian of the strongly convex function d  
-        
-        OmegaEvalProb % struct, the strongly concave maximization problem to evaluate omega
-        
+        d_hessian % function object, hessian of the strongly convex function d   
+        OmegaEvalProb % struct, strongly concave maximization problem to evaluate omega
+        gap_func % function object, gap function for VI
+
+        KKT_stationarity_func % function object, KKT stationarity condition for VI
+        KKT_complementarity_func % function object, KKT complementarity condition for VI 
+    end
+
+    properties
         z % symbolic variable, includes all the variable to be optimized,
         p % symbolic variable, including all the problem parameter
         J % symbolic function, cost function 
@@ -44,7 +63,7 @@ classdef NLP_Formulation < handle
         c % symbolic function, inequality constraint   
         Dim % struct, problem dimension record
         
-        FuncObj % structure, function object  
+        FuncObj % structure, NLP function object  
     end
     
     %% Constructor method        
@@ -52,44 +71,81 @@ classdef NLP_Formulation < handle
         function self = NLP_Formulation(OCPEC, Option)
             %NLP_Formulation: Construct an instance of this class
             %   Detailed explanation goes here
-            %% specify properties
-            if ~isempty(Option.relaxProbType)
-                self.relaxProbType = Option.relaxProbType;
+            %% specify properties based on Option
+            if isfield(Option, 'relaxation_problem')
+                self.relaxation_problem = Option.relaxation_problem;
             end
-            if ~isempty(Option.stronglyConvexFuncType)
-                self.stronglyConvexFuncType = Option.stronglyConvexFuncType;
+            if isfield(Option, 'gap_constraint_relaxation_strategy')
+                self.gap_constraint_relaxation_strategy = Option.gap_constraint_relaxation_strategy;
             end
-            if ~isempty(Option.D_gap_param.a)
-                self.D_gap_param.a = Option.D_gap_param.a;
+            if isfield(Option, 'KKT_complementarity_relaxation_strategy')
+                self.KKT_complementarity_relaxation_strategy = Option.KKT_complementarity_relaxation_strategy;
             end
-            if ~isempty(Option.D_gap_param.b)
-                self.D_gap_param.b = Option.D_gap_param.b;
-            end            
-            if ~isempty(Option.KKT_relaxation_strategy)
-                self.KKT_relaxation_strategy = Option.KKT_relaxation_strategy;
+            if isfield(Option, 'strongly_convex_func')
+                self.strongly_convex_func = Option.strongly_convex_func;
+            end
+            if isfield(Option, 'gap_func_smooth_param')
+                self.gap_func_smooth_param = Option.gap_func_smooth_param;
+            end
+            if isfield(Option, 'D_gap_param_a')
+                self.D_gap_param_a = Option.D_gap_param_a;
+            end
+            if isfield(Option, 'D_gap_param_b')
+                self.D_gap_param_b = Option.D_gap_param_b;
+            end
+            if self.D_gap_param_b <= self.D_gap_param_a
+                error('D gap function parameter should satisfy: b > a > 0')
+            end
+            if isfield(Option, 'state_equation_discretization')
+                self.state_equation_discretization = Option.state_equation_discretization;
             end
 
-            %% create a Strongly Convex Function d and its derivative used in the gap functions PHI (or PHIab)
-            [d_func, d_grad, d_hessian] = self.createStronglyConvexFunction(OCPEC);
-            self.d_func = d_func;
-            self.d_grad = d_grad;
-            self.d_hessian = d_hessian;
-            
-            %% create a Strongly Concave Maximization Problem to evaluate variable omega (or omega_a, omega_b) used in the gap function PHI (or PHIab)                     
-            if strcmp(self.relaxProbType, 'KKT_based')
-                self.OmegaEvalProb = [];
-            else
-                self.OmegaEvalProb = self.createStronglyConcaveMaxProblem(OCPEC);
-            end
-            
-            %% discretize OCPEC into NLP 
-            switch self.relaxProbType
-                case 'generalized_primal_gap_constraint_based'
-                    nlp = self.createNLP_Primal_Gap_Based(OCPEC);
-                case 'generalized_D_gap_constraint_based'
-                    nlp = self.createNLP_D_Gap_Based(OCPEC);
+            %% specify properties about function object used in NLP reformulation
+            % create penalty function            
+            % self.penalty_func = self.create_penalty_func(OCPEC);
+
+            % create discretization state equation
+            self.discre_state_equ_func = self.create_discre_state_equ_func(OCPEC);
+                    
+            switch self.relaxation_problem
+                case 'gap_constraint_based'
+                    % create a strongly convex function d and its derivative used in gap function
+                    [d_func, d_grad, d_hessian] = self.create_strongly_convex_func(OCPEC);
+                    self.d_func = d_func;
+                    self.d_grad = d_grad;
+                    self.d_hessian = d_hessian;
+                    % create a strongly concave maximization problem to evaluate variable omega
+                    % used in gap function
+                    self.OmegaEvalProb = self.create_strongly_concave_max_prob(OCPEC);
+                    % create function object to evaluate gap function phi, 
+                    % phi is a function of lambda, eta, and an intermedia variable omega
+                    % omega also is a function of lambda and eta.
+                    % Therefore, according to the type of the OCPEC VI set, the return 
+                    % function object about phi may be:
+                    % (1) a function of lambda and eta,
+                    % where omega CAN be explicitly represented by lambda and eta
+                    % (2) a function of lambda, eta, and omega
+                    % where omega CAN NOT be explicitly represented by lambda and eta
+                    switch self.gap_constraint_relaxation_strategy
+                        case 'generalized_primal_gap'
+                            self.gap_func = self.create_generalized_primal_gap_function(OCPEC);
+                        case 'generalized_D_gap'
+                            self.gap_func = self.create_generalized_D_gap_function(OCPEC);
+                    end
+
                 case 'KKT_based'
-                    nlp = self.createNLP_KKT_Based(OCPEC);
+                    % create function object for KKT based VI reformulation
+                    [KKT_stationarity_func, KKT_complementarity_func] = self.create_KKT_reformulation(OCPEC);
+                    self.KKT_stationarity_func = KKT_stationarity_func;
+                    self.KKT_complementarity_func = KKT_complementarity_func;
+            end
+
+            %% discretize OCPEC into NLP
+            switch self.relaxation_problem
+                case 'gap_constraint_based'
+                    nlp = self.create_gap_constraint_based_NLP(OCPEC);
+                case 'KKT_based'
+                    nlp = self.create_KKT_based_NLP(OCPEC);
             end
             self.z = nlp.z;   
             self.p = nlp.p;
@@ -99,24 +155,32 @@ classdef NLP_Formulation < handle
             self.Dim = nlp.Dim;   
             
             %% create function object
-            self.FuncObj = self.createFuncObj(nlp);
+            self.FuncObj = self.create_FuncObj(nlp);
             
         end
     end
     
     %% Other method
     methods
-        [d_func, d_grad, d_hessian] = createStronglyConvexFunction(self, OCPEC)
+        penalty_func = create_penalty_func(self, OCPEC)
+
+        discre_state_equ_func = create_discre_state_equ_func(self, OCPEC)
+
+        [d_func, d_grad, d_hessian] = create_strongly_convex_func(self, OCPEC)
         
-        OmegaEvalProb = createStronglyConcaveMaxProblem(self, OCPEC)
+        OmegaEvalProb = create_strongly_concave_max_prob(self, OCPEC)
+
+        phi_func = create_generalized_primal_gap_function(self, OCPEC)
+
+        phi_func = create_generalized_D_gap_function(self, OCPEC)
+
+        [KKT_stationarity_func, KKT_complementarity_func] = create_KKT_reformulation(self, OCPEC)
+
+        nlp = create_gap_constraint_based_NLP(self, OCPEC)
+
+        nlp = create_KKT_based_NLP(self, OCPEC)
         
-        nlp = createNLP_Primal_Gap_Based(self, OCPEC);
-        
-        nlp = createNLP_D_Gap_Based(self, OCPEC);
-        
-        nlp = createNLP_KKT_Based(self, OCPEC);
-        
-        FuncObj = createFuncObj(self, nlp) 
+        FuncObj = create_FuncObj(self, nlp) 
     end
     
 end

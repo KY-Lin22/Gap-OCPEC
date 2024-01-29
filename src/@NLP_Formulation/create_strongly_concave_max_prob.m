@@ -1,4 +1,4 @@
-function OmegaEvalProb = createStronglyConcaveMaxProblem(self, OCPEC)
+function OmegaEvalProb = create_strongly_concave_max_prob(self, OCPEC)
 % create a strongly concave maximization problem to evaluate omega in gap function
 % (1) generalized primal gap constraint based: one problem with the form of:
 %  max  f(omega),
@@ -8,6 +8,7 @@ function OmegaEvalProb = createStronglyConcaveMaxProblem(self, OCPEC)
 %  s.t. lbg <= g(omega) <= ubg,
 %  max  f_b(omega),
 %  s.t. lbg <= g(omega) <= ubg,
+
 
 import casadi.*
 %%
@@ -24,14 +25,14 @@ lbg = zeros(OCPEC.Dim.g, 1);
 ubg = inf*ones(OCPEC.Dim.g, 1);
 
 % cost function (max) 
-switch self.relaxProbType
-    case 'generalized_primal_gap_constraint_based'       
+switch self.gap_constraint_relaxation_strategy
+    case 'generalized_primal_gap'      
         f = - self.d_func(omega) - (eta' - self.d_grad(lambda)) * omega;
-    case 'generalized_D_gap_constraint_based' 
-        a = self.D_gap_param.a;
-        b = self.D_gap_param.b;
-        f.a = - a * self.d_func(omega) - (eta' - a * self.d_grad(lambda)) * omega;
-        f.b = - b * self.d_func(omega) - (eta' - b * self.d_grad(lambda)) * omega;
+    case 'generalized_D_gap'
+        a = self.D_gap_param_a;
+        b = self.D_gap_param_b;
+        f_a = - a * self.d_func(omega) - (eta' - a * self.d_grad(lambda)) * omega;
+        f_b = - b * self.d_func(omega) - (eta' - b * self.d_grad(lambda)) * omega;
 end
 
 %% create output struct
@@ -43,13 +44,13 @@ OmegaEvalProb = struct(...
     'lbg', lbg,...
     'ubg', ubg);
 % problem cost function
-switch self.relaxProbType
-    case 'generalized_primal_gap_constraint_based'        
+switch self.gap_constraint_relaxation_strategy
+    case 'generalized_primal_gap'       
         OmegaEvalProb.f = f;
-    case 'generalized_D_gap_constraint_based'
-        OmegaEvalProb.f.a = f.a;
-        OmegaEvalProb.f.b = f.b;
+    case 'generalized_D_gap'
+        OmegaEvalProb.f_a = f_a;
+        OmegaEvalProb.f_b = f_b;
 end
 
-end
 
+end

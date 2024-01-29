@@ -4,7 +4,7 @@ function phi_func = create_generalized_primal_gap_function(self, OCPEC)
 import casadi.*
 lambda = SX.sym('lambda', OCPEC.Dim.lambda, 1);
 eta = SX.sym('eta', OCPEC.Dim.lambda, 1); % auxiliary variable for VI function F in gap function
-eps = self.gap_func_smooth_param;
+epsilon = self.gap_func_smooth_param;
 %%
 switch OCPEC.VISetType
     case 'box_constraint'
@@ -15,8 +15,10 @@ switch OCPEC.VISetType
             case 'general'
                 stationary_point = []; % To Be Done                
         end
-        % To be done: smooth omega = mid(bl, bu, stationary_point) by CHKS function in elementent-wise
-        omega = min(max(OCPEC.bl, stationary_point), OCPEC.bu); 
+        % smoothing omega = mid(bl, bu, stationary_point) by CHKS function 
+        % ref: example 2 in ''A new look at smoothing Newton methods for NCPs and BVI'', Mathematical Programming, 2000
+        omega = 0.5*(OCPEC.bl + sqrt((OCPEC.bl - stationary_point).^2 + 4*epsilon^2)) ...
+            + 0.5*(OCPEC.bu - sqrt((OCPEC.bu - stationary_point).^2 + 4*epsilon^2));
         phi = self.d_func(lambda) - self.d_func(omega) + (eta' - self.d_grad(lambda)) * (lambda - omega);
         phi_func = Function('phi_func', {lambda, eta}, {phi}, {'lambda', 'eta'}, {'phi'});
 
@@ -29,7 +31,7 @@ switch OCPEC.VISetType
                 stationary_point = []; % To Be Done
         end
         % smoothing omega = max(0, stationary_point) by CHKS function
-        omega = 0.5*(sqrt(stationary_point.^2 + 4 * eps^2) + stationary_point); 
+        omega = 0.5*(sqrt(stationary_point.^2 + 4 * epsilon^2) + stationary_point); 
         phi = self.d_func(lambda) - self.d_func(omega) + (eta' - self.d_grad(lambda)) * (lambda - omega);
         phi_func = Function('phi_func', {lambda, eta}, {phi}, {'lambda', 'eta'}, {'phi'});
 

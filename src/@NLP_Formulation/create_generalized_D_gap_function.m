@@ -2,7 +2,7 @@ function phi_func  = create_generalized_D_gap_function(self, OCPEC)
 import casadi.*
 lambda = SX.sym('lambda', OCPEC.Dim.lambda, 1);
 eta = SX.sym('eta', OCPEC.Dim.lambda, 1); % auxiliary variable for VI function F in gap function
-eps = self.gap_func_smooth_param;
+epsilon = self.gap_func_smooth_param;
 a = self.D_gap_param_a;
 b = self.D_gap_param_b;
 
@@ -18,9 +18,12 @@ switch OCPEC.VISetType
                 stationary_point_a = [];% To Be Done
                 stationary_point_b = [];
         end
-        % To be done: smooth omega = mid(bl, bu, stationary_point) by CHKS function in elementent-wise
-        omega_a = min(max(OCPEC.bl, stationary_point_a), OCPEC.bu); 
-        omega_b = min(max(OCPEC.bl, stationary_point_b), OCPEC.bu);
+        % smoothing omega = mid(bl, bu, stationary_point) by CHKS function 
+        % ref: example 2 in ''A new look at smoothing Newton methods for NCPs and BVI'', Mathematical Programming, 2000
+        omega_a = 0.5*(OCPEC.bl + sqrt((OCPEC.bl - stationary_point_a).^2 + 4*epsilon^2)) ...
+            + 0.5*(OCPEC.bu - sqrt((OCPEC.bu - stationary_point_a).^2 + 4*epsilon^2));
+        omega_b = 0.5*(OCPEC.bl + sqrt((OCPEC.bl - stationary_point_b).^2 + 4*epsilon^2)) ...
+            + 0.5*(OCPEC.bu - sqrt((OCPEC.bu - stationary_point_b).^2 + 4*epsilon^2));
         q_a = self.d_func(lambda) - self.d_func(omega_a) + self.d_grad(lambda) * (omega_a - lambda);
         q_b = self.d_func(lambda) - self.d_func(omega_b) + self.d_grad(lambda) * (omega_b - lambda);
         phi_ab = (omega_b - omega_a)' * eta + a * q_a - b * q_b;
@@ -37,8 +40,8 @@ switch OCPEC.VISetType
                 stationary_point_b = []; 
         end
         % smoothing omega = max(0, stationary_point) by CHKS function
-        omega_a = 0.5*(sqrt(stationary_point_a.^2 + 4 * eps^2) + stationary_point_a);
-        omega_b = 0.5*(sqrt(stationary_point_b.^2 + 4 * eps^2) + stationary_point_b);
+        omega_a = 0.5*(sqrt(stationary_point_a.^2 + 4 * epsilon^2) + stationary_point_a);
+        omega_b = 0.5*(sqrt(stationary_point_b.^2 + 4 * epsilon^2) + stationary_point_b);
         q_a = self.d_func(lambda) - self.d_func(omega_a) + self.d_grad(lambda) * (omega_a - lambda);
         q_b = self.d_func(lambda) - self.d_func(omega_b) + self.d_grad(lambda) * (omega_b - lambda);
         phi_ab = (omega_b - omega_a)' * eta + a * q_a - b * q_b;

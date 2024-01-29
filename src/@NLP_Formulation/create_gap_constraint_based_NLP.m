@@ -20,16 +20,20 @@ function nlp = create_gap_constraint_based_NLP(self, OCPEC)
 %                 lambda_n: algebraic variable   
 %                 eta_n:    auxiliary variable for VI function F in gap function
 %                 w_n:      scalar auxiliary variable to transfer gap function inequality into equality
-%        (2) p: collects all the NLP problem parameters p = [s]
+%        (2) p: collects all the NLP problem parameters p = [s, mu]
 %            with s:  nonnegative relax parameter for gap constraints
-%        (3) J: cost function J = sum(J_n) + J_terminal and J_n = J_stage_n
+%                 mu: nonnegative penalty parameter for penalty function
+%        (3) J: cost function J = J_ocp + J_penalty
+%            J_ocp = sum(J_stage_n) + J_terminal 
+%            J_penalty = sum(J_penalty_n)
 %            with J_stage_n:   stage cost defined in OCPEC
 %                 J_terminal:  terminal cost defined in OCPEC
+%                 J_penalty_n: penalty cost for auxiliary variable w_n
 %        (4) h: equality constraint arranged in a stagewise manner
 %            h = [h_1;...h_n;...h_N] and h_n = [f_n; F_n - eta_n; phi_n - w_n; C_n]     
 %            with f_n:   discretized state equation f defined in OCPEC
 %                 F_n:   VI function
-%                 phi_n: gap constraint (variable: lambda_n, eta_n)
+%                 phi_n: gap function
 %                 C_n:   path equality constraints C defined in OCPEC 
 %        (5) c: inequality constraint arranged in a stagewise manner
 %            c = [c_1;...c_n;...c_N] and 
@@ -38,9 +42,11 @@ function nlp = create_gap_constraint_based_NLP(self, OCPEC)
 %            with g_n: inequality constraints g formulating VI set K  
 %                 G_n: path inequality constraints G defined in OCPEC
 % output: nlp is a structure with fields:
-%         z, omega (when it can not be explicitly represented): variable
+%         z: variable
 %         p: parameter
-%         J, h, c: cost and constraint function,                                 
+%         J, h, c: cost and constraint function,  
+%         omega: variable used when it can not be explicitly represented by lambda and eta
+%         J_ocp, J_penalty: cost term
 %         Dim: problem size
 
 import casadi.*
@@ -58,10 +64,13 @@ ETA = SX.sym('ETA', eta_Dim, OCPEC.nStages); % auxiliary variable for VI functio
 W = SX.sym('W', w_Dim, OCPEC.nStages); % auxiliary variable for gap function
 % initialize problem parameter
 s = SX.sym('s', 1, 1);
+mu = SX.sym('mu', 1, 1);
 
 %% mapping function object
 % stage cost
 L_S_map = OCPEC.FuncObj.L_S.map(OCPEC.nStages);
+% penalty cost
+penalty_map = self.penalty_func.map(OCPEC.nStages);
 % discretization state equation
 f_map = self.discre_state_equ_func.map(OCPEC.nStages);
 % VI function F and set K inequality constraint g
@@ -73,10 +82,11 @@ C_map = OCPEC.FuncObj.C.map(OCPEC.nStages);
 % gap function phi
 phi_map = self.gap_func.map(OCPEC.nStages);
 
-%% formulate NLP function (stagewise, capital)
+%% formulate NLP function (stagewise)
 % cost
 L_S_stage = L_S_map(X, U, LAMBDA);
 L_T = OCPEC.FuncObj.L_T(X(:, end));
+penalty_stage = penalty_map(W, mu);
 % discretized state equation
 f_stage = f_map(XPrev, X, U, LAMBDA);
 % VI function and set
@@ -109,26 +119,28 @@ Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, eta_Dim, w_Dim]
 Dim.z = size(z, 1);
 
 % problem parameter
-p = s;
+p = [s; mu];
 
 % cost function
-J = OCPEC.timeStep*sum(L_S_stage) + L_T;
+J_ocp = OCPEC.timeStep*sum(L_S_stage) + L_T;
+J_penalty = OCPEC.timeStep*sum(penalty_stage);
+J = J_ocp + J_penalty;
 
 % equality constraint h = 0
-H = [f_stage; F_stage - ETA; phi_stage - W; C_stage];
-h = reshape(H, (OCPEC.Dim.x + eta_Dim + w_Dim + OCPEC.Dim.C) * OCPEC.nStages, 1);
+h_stage = [f_stage; F_stage - ETA; phi_stage - W; C_stage];
+h = reshape(h_stage, (OCPEC.Dim.x + eta_Dim + w_Dim + OCPEC.Dim.C) * OCPEC.nStages, 1);
 Dim.h_Node = cumsum([OCPEC.Dim.x, eta_Dim, w_Dim, OCPEC.Dim.C]);
 Dim.h = size(h, 1);
 
 % inequality constraint c >= 0
 switch self.gap_constraint_relaxation_strategy
     case 'generalized_primal_gap'
-        C = [g_stage; s - W; G_stage];
-        c = reshape(C, (OCPEC.Dim.g + w_Dim + OCPEC.Dim.G) * OCPEC.nStages, 1);
+        c_stage = [g_stage; s - W; G_stage];
+        c = reshape(c_stage, (OCPEC.Dim.g + w_Dim + OCPEC.Dim.G) * OCPEC.nStages, 1);
         Dim.c_Node = cumsum([OCPEC.Dim.g, w_Dim, OCPEC.Dim.G]);
     case 'generalized_D_gap'
-        C = [s - W; G_stage];
-        c = reshape(C, (w_Dim + OCPEC.Dim.G) * OCPEC.nStages, 1);
+        c_stage = [s - W; G_stage];
+        c = reshape(c_stage, (w_Dim + OCPEC.Dim.G) * OCPEC.nStages, 1);
         Dim.c_Node = cumsum([w_Dim, OCPEC.Dim.G]);
 end
 Dim.c = size(c, 1);
@@ -136,6 +148,7 @@ Dim.c = size(c, 1);
 %% create output struct
 nlp = struct('z', z, 'p', p,...
     'J', J, 'h', h, 'c', c,...
+    'J_ocp', J_ocp, 'J_penalty', J_penalty,...
     'Dim', Dim);
 
 end

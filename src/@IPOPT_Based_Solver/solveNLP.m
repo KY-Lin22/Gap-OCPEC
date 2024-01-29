@@ -12,8 +12,8 @@ function [z_Opt, Info] = solveNLP(self, z_Init, p_Init, p_End)
 %          [z_Opt, Info] = self.solveNLP(z_Init, p_Init, p_End)
 % Argument:
 %          z_Init: double, NLP.Dim.z X 1, initial guess
-%          p_Init: double, problem parameter (initial) p = s
-%          p_End: double, problem parameter (end) p = s
+%          p_Init: double, problem parameter (initial) p = [s, mu]
+%          p_End: double, problem parameter (end) p = [s, mu]
 % Output:
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information
@@ -37,9 +37,17 @@ end
 if p_Init(1) < p_End(1)
     error('s_Init should not smaller than s_End')
 end
+% check penalty parameter
+if (p_Init(2) < 0) || (p_End(2) < 0)
+    error('penalty parameter mu (i.e., p_2) should be nonnegative')
+end
+if p_Init(2) > p_End(2)
+    error('mu_Init should not larger than mu_End')
+end
+
 % load parameter
-kappa_times = Option.Homotopy.kappa_times;
-kappa_exp = Option.Homotopy.kappa_exp;
+kappa_s_times = Option.Homotopy.kappa_s_times;
+kappa_s_exp = Option.Homotopy.kappa_s_exp;
 
 %% create record for time and log 
 % evaluate the number of continuation step based on s_Init and s_End
@@ -51,15 +59,15 @@ while true
     if s_test == s_End
         break
     else        
-        s_trial = min([kappa_times * s_test, s_test^kappa_exp], [], 2);
+        s_trial = min([kappa_s_times * s_test, s_test^kappa_s_exp], [], 2);
         s_test = max([s_trial, s_End], [], 2);
         continuationStepNum = continuationStepNum + 1;
     end
 end
 
 % log (time, param, cost, KKT error, stepSize, natRes)
-Log.param               = zeros(continuationStepNum, 1); % record relaxation parameter s 
-Log.cost                = zeros(continuationStepNum, 1);
+Log.param               = zeros(continuationStepNum, 2); % [s, mu] 
+Log.cost                = zeros(continuationStepNum, 3); % [ocp, penalty, total]
 Log.KKT_error           = zeros(continuationStepNum, 3); % [primal, dual_scaled, total]
 Log.stepSize_primal     = zeros(continuationStepNum, 2); % [min, average]
 Log.stepSize_dual       = zeros(continuationStepNum, 2); % [min, average]
@@ -69,7 +77,8 @@ Log.timeElapsed         = zeros(continuationStepNum, 1); % elapsed time in each 
 
 %% continuation loop (j: continuation step counter)
 z_Init_j = z_Init;
-p_j = p_Init;
+p_j = p_Init; 
+mu_End = p_End(2);
 
 for j = 1 : continuationStepNum
     %% step 1: solve a NLP with given p
@@ -80,13 +89,15 @@ for j = 1 : continuationStepNum
     % extract solution and information
     z_Opt_j = full(solution_j.x);
     J_Opt_j = full(solution_j.f);
+    J_ocp_j = full(NLP.FuncObj.J_ocp(z_Opt_j, p_j));
+    J_penalty_j = full(NLP.FuncObj.J_penalty(z_Opt_j, p_j));
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
     KKT_error_dual_j = self.Solver.stats.iterations.inf_du(end); 
     VI_nat_res_j = self.evaluateNaturalResidual(z_Opt_j);
 
     %% step 2: record and print information of the current continuation iterate
-    Log.param(j) = p_j(1);
-    Log.cost(j) = J_Opt_j;
+    Log.param(j, :) = [p_j(1), p_j(2)];
+    Log.cost(j, :) = [J_ocp_j, J_penalty_j, J_Opt_j];
     Log.KKT_error(j, :) = [KKT_error_primal_j, KKT_error_dual_j, max(KKT_error_primal_j, KKT_error_dual_j)];
     Log.stepSize_primal(j, :) = [min(self.Solver.stats.iterations.alpha_pr(2:end)),...
         sum(self.Solver.stats.iterations.alpha_pr(2:end))/(self.Solver.stats.iter_count)];
@@ -96,20 +107,20 @@ for j = 1 : continuationStepNum
     Log.iterNum(j) = self.Solver.stats.iter_count;
     Log.timeElapsed(j) = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
     if mod(j, 10) == 1
-        disp('---------------------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = '  step | param(s) |   cost   |  KKT(primal/dual) | stepsize_p(min/ave) | stepsize_d(min/ave) | VI_nat_res | iterNum |  time(s) |';
+        disp('------------------------------------------------------------------------------------------------------------------------------------------------')
+        headMsg = ' step  |     param(s/mu)    | cost(ocp/penalty)  |  KKT(primal/dual)  |  alpha_p(min/ave)  |  alpha_d(min/ave)  | nat_res  | iterNum | time(s) ';
         disp(headMsg)
     end
     prevIterMsg = [' ',...
         num2str(j,'%10.2d'), '/', num2str(continuationStepNum,'%10.2d'),' | ',...
-        num2str(Log.param(j), '%10.2e'),' | ',...
-        num2str(Log.cost(j), '%10.2e'),' | ',...
+        num2str(Log.param(j, :), '%10.2e'),' | ',...
+        num2str(Log.cost(j, 1 : 2), '%10.2e'),' | ',...
         num2str(Log.KKT_error(j, 1 : 2), '%10.2e'),' | ',...
         num2str(Log.stepSize_primal(j, :), '%10.2e'),' | ',...
-        num2str(Log.stepSize_dual(j, :), '%10.2e'),'  |  ',...
-        num2str(Log.VI_natural_residual(j), '%10.2e'),'  |   ',...
-        num2str(Log.iterNum(j), '%10.3d'),'   |  ',...
-        num2str(Log.timeElapsed(j), '%10.4f'),'  | '];
+        num2str(Log.stepSize_dual(j, :), '%10.2e'),' | ',...
+        num2str(Log.VI_natural_residual(j), '%10.2e'),' |   ',...
+        num2str(Log.iterNum(j), '%10.3d'),'   | ',...
+        num2str(Log.timeElapsed(j), '%10.4f')];
     disp(prevIterMsg)
     
     %% step 3: check ternimation based on the current homotopy iterate
@@ -122,9 +133,19 @@ for j = 1 : continuationStepNum
     else
         % IPOPT at this homotopy iteration (not the final) finds the optimal solution, prepare for next homotopy iteration
         exitFlag = false;
+        % update initial guess
         z_Init_j = z_Opt_j;
-        s_trial = min([kappa_times .* p_j(1), p_j(1).^kappa_exp]);
-        p_j(1) = max([s_trial, s_End]);
+        % update relaxation parameter
+        s_j = p_j(1);
+        s_trial = min([kappa_s_times .* s_j, s_j.^kappa_s_exp]);
+        s_j = max([s_trial, s_End]);
+        % update penalty parameter
+        mu_trial = 1/s_j;
+        mu_j = min([mu_trial, mu_End]);
+        % update parameter vector
+        p_j(1) = s_j;
+        p_j(2) = mu_j;
+        
     end
     
     %% step 4: check exitFlag and return optimal solution
@@ -133,8 +154,9 @@ for j = 1 : continuationStepNum
         z_Opt = z_Opt_j;
         % create Info
         Info.continuationStepNum = continuationStepNum;
-        Info.terminalMsg = self.Solver.stats.return_status;
-        Info.cost = J_Opt_j;
+        Info.terminalMsg = self.Solver.stats.return_status;        
+        Info.cost.ocp = J_ocp_j;
+        Info.cost.penalty = J_penalty_j;
         Info.KKT_error.primal = KKT_error_primal_j;
         Info.KKT_error.dual = KKT_error_dual_j;
         Info.VI_natural_residual = VI_nat_res_j;
@@ -146,15 +168,16 @@ for j = 1 : continuationStepNum
         disp(['1. Terminal Status: ', Info.terminalMsg]) 
         disp('2. Continuation Step Message')
         disp(['- TimeElapsed: ................................. ', num2str(Info.time,'%10.3f'), ' s'])
-        disp(['- Continuation Step: ............................', num2str(Info.continuationStepNum)])        
-        disp(['- Time Per Continuation Step: ...................', num2str(Info.time /Info.continuationStepNum,'%10.2f'), ' s/Step'])
-        disp(['- Iterations: ...................................', num2str(Info.iterNum)])
-        disp(['- Time Per Iteration: ...........................', num2str(1000 * Info.time /Info.iterNum,'%10.2f'), ' ms/Iter'])
+        disp(['- Continuation Step: ........................... ', num2str(Info.continuationStepNum)])        
+        disp(['- Time Per Continuation Step: .................. ', num2str(Info.time / Info.continuationStepNum,'%10.2f'), ' s/Step'])
+        disp(['- Iterations: .................................. ', num2str(Info.iterNum)])
+        disp(['- Time Per Iteration: .......................... ', num2str(1000 * Info.time / Info.iterNum,'%10.2f'), ' ms/Iter'])
         disp('3. Solution Message')
-        disp(['- Cost: ........................................ ', num2str(Info.cost,'%10.3e'), '; '])
-        disp(['- KKT (primal): ................................ ', num2str(Info.KKT_error.primal,'%10.3e'), '; '])
-        disp(['- KKT (dual, scaled): .......................... ', num2str(Info.KKT_error.dual,'%10.3e')  '; '])
-        disp(['- VI natural residual: ......................... ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
+        disp(['- Cost(ocp): ................................... ', num2str(Info.cost.ocp,'%10.3e'), '; '])
+        disp(['- Cost(penalty): ............................... ', num2str(Info.cost.penalty,'%10.3e'), '; '])
+        disp(['- KKT(primal): ................................. ', num2str(Info.KKT_error.primal,'%10.3e'), '; '])
+        disp(['- KKT(dual): ................................... ', num2str(Info.KKT_error.dual,'%10.3e')  '; '])
+        disp(['- equilibrium constraint(natural residual): .... ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
         break
     end
     

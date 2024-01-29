@@ -14,10 +14,14 @@ Option.NLP_Solver.ipopt.print_level = 0;
 % tolerance
 Option.NLP_Solver.ipopt.tol = 1e-8;% default 1e-8
 Option.NLP_Solver.ipopt.max_iter = 3000; % default 3000
+Option.NLP_Solver.ipopt.acceptable_tol = 1e-6; % default 1e-6
+%
+Option.NLP_Solver.ipopt.bound_relax_factor = 0;
+% Option.NLP_Solver.ipopt.mu_strategy = 'adaptive';
 
 %% option for homotopy
-Option.Homotopy.kappa_times = 0.9;
-Option.Homotopy.kappa_exp = 1.1;
+Option.Homotopy.kappa_s_times = 0.9;
+Option.Homotopy.kappa_s_exp = 1.1;
 
 end
 

@@ -31,7 +31,7 @@ classdef NLP_Formulation < handle
             'quadratic',...
             'general'...
             })} = 'quadratic'  % strongly convex function in Auchmuty's saddle function       
-        gap_func_smooth_param double {mustBeNonnegative} = 0.01 % used in CHKS smoothing function for max(0, x)
+        gap_func_smooth_param double {mustBeNonnegative} = 0.001 % used in CHKS smoothing function for max(0, x)
         D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9. b = 1.1)
         D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
                                                         % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima          
@@ -41,14 +41,13 @@ classdef NLP_Formulation < handle
     end
 
     properties
-        penalty_func % function object, penalty function for certain variables
-
         discre_state_equ_func % function object, discretization state equation
 
         d_func % function object, strongly convex function d  
         d_grad % function object, gradient of the strongly convex function d
         d_hessian % function object, hessian of the strongly convex function d   
         OmegaEvalProb % struct, strongly concave maximization problem to evaluate omega
+        penalty_func % function object, penalty function for certain variables
         gap_func % function object, gap function for VI
 
         KKT_stationarity_func % function object, KKT stationarity condition for VI
@@ -101,9 +100,6 @@ classdef NLP_Formulation < handle
             end
 
             %% specify properties about function object used in NLP reformulation
-            % create penalty function            
-            % self.penalty_func = self.create_penalty_func(OCPEC);
-
             % create discretization state equation
             self.discre_state_equ_func = self.create_discre_state_equ_func(OCPEC);
                     
@@ -117,6 +113,8 @@ classdef NLP_Formulation < handle
                     % create a strongly concave maximization problem to evaluate variable omega
                     % used in gap function
                     self.OmegaEvalProb = self.create_strongly_concave_max_prob(OCPEC);
+                    % create penalty function for auxiliary variable
+                    self.penalty_func = self.create_penalty_func();
                     % create function object to evaluate gap function phi, 
                     % phi is a function of lambda, eta, and an intermedia variable omega
                     % omega also is a function of lambda and eta.
@@ -162,13 +160,13 @@ classdef NLP_Formulation < handle
     
     %% Other method
     methods
-        penalty_func = create_penalty_func(self, OCPEC)
-
         discre_state_equ_func = create_discre_state_equ_func(self, OCPEC)
 
         [d_func, d_grad, d_hessian] = create_strongly_convex_func(self, OCPEC)
         
         OmegaEvalProb = create_strongly_concave_max_prob(self, OCPEC)
+
+        penalty_func = create_penalty_func(self)
 
         phi_func = create_generalized_primal_gap_function(self, OCPEC)
 

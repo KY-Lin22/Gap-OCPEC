@@ -20,7 +20,7 @@ Option.NLP_Solver.ipopt.max_iter = 3000; % default 3000
 % Option.NLP_Solver.ipopt.mu_strategy = 'adaptive';
 
 % NLP bound 
-Option.NLP_Solver.ipopt.bound_relax_factor = 0;
+% Option.NLP_Solver.ipopt.bound_relax_factor = 0;
 
 %% option for homotopy
 Option.Homotopy.kappa_s_times = 0.9;

@@ -13,6 +13,8 @@ switch self.penalty_gap_func_auxiliary_variable
         penalty = 0;
     case 'L1'
         penalty = mu * w;
+    case 'L2'
+        penalty = mu * w^2;
 end
 
 % output

@@ -12,8 +12,8 @@ function [z_Opt, Info] = solveNLP(self, z_Init, p_Init, p_End)
 %          [z_Opt, Info] = self.solveNLP(z_Init, p_Init, p_End)
 % Argument:
 %          z_Init: double, NLP.Dim.z X 1, initial guess
-%          p_Init: double, problem parameter (initial) p = [s, mu]
-%          p_End: double, problem parameter (end) p = [s, mu]
+%          p_Init: double, problem parameter (initial) p = [s; mu]
+%          p_End: double, problem parameter (end) p = [s; mu]
 % Output:
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information

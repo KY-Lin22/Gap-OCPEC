@@ -31,8 +31,8 @@ classdef NLP_Formulation < handle
             'quadratic',...
             'general'...
             })} = 'quadratic'  % strongly convex function in Auchmuty's saddle function       
-        gap_func_smooth_param double {mustBeNonnegative} = 0.001 % used in CHKS smoothing function for max(0, x)
-        D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9. b = 1.1)
+        gap_func_smooth_param double {mustBeNonnegative} = 0.001 % used in CHKS smoothing function for max(0, x) and mid(bl, bu, x)
+        D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
         D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
                                                         % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima                  
         penalty_gap_func_auxiliary_variable char {mustBeMember(penalty_gap_func_auxiliary_variable, {...
@@ -51,7 +51,7 @@ classdef NLP_Formulation < handle
         d_hessian % function object, hessian of the strongly convex function d   
         OmegaEvalProb % struct, strongly concave maximization problem to evaluate omega
         penalty_func % function object, penalty function for certain variables
-        gap_func % function object, gap function for VI
+        phi_c_func % function object, weighting generalized primal gap function phi_c for VI
 
         KKT_stationarity_func % function object, KKT stationarity condition for VI
         KKT_complementarity_func % function object, KKT complementarity condition for VI 
@@ -119,24 +119,10 @@ classdef NLP_Formulation < handle
                     % create a strongly concave maximization problem to evaluate variable omega
                     % used in gap function
                     self.OmegaEvalProb = self.create_strongly_concave_max_prob(OCPEC);
-                    % create penalty function for auxiliary variable
+                    % create a penalty function for auxiliary variable
                     self.penalty_func = self.create_penalty_func();
-                    % create function object to evaluate gap function phi, 
-                    % phi is a function of lambda, eta, and an intermedia variable omega
-                    % omega also is a function of lambda and eta.
-                    % Therefore, according to the type of the OCPEC VI set, the return 
-                    % function object about phi may be:
-                    % (1) a function of lambda and eta,
-                    % where omega CAN be explicitly represented by lambda and eta
-                    % (2) a function of lambda, eta, and omega
-                    % where omega CAN NOT be explicitly represented by lambda and eta
-                    switch self.gap_constraint_relaxation_strategy
-                        case 'generalized_primal_gap'
-                            self.gap_func = self.create_generalized_primal_gap_function(OCPEC);
-                        case 'generalized_D_gap'
-                            self.gap_func = self.create_generalized_D_gap_function(OCPEC);
-                    end
-
+                    % create a weighting generalized primal gap function phi_c, 
+                    self.phi_c_func = self.create_weighting_generalized_primal_gap_function(OCPEC);
                 case 'KKT_based'
                     % create function object for KKT based VI reformulation
                     [KKT_stationarity_func, KKT_complementarity_func] = self.create_KKT_reformulation(OCPEC);
@@ -147,7 +133,12 @@ classdef NLP_Formulation < handle
             %% discretize OCPEC into NLP
             switch self.relaxation_problem
                 case 'gap_constraint_based'
-                    nlp = self.create_gap_constraint_based_NLP(OCPEC);
+                    switch self.gap_constraint_relaxation_strategy
+                        case 'generalized_primal_gap'
+                            nlp = self.create_generalized_primal_gap_constraint_based_NLP(OCPEC);
+                        case 'generalized_D_gap'
+                            nlp = self.create_generalized_D_gap_constraint_based_NLP(OCPEC);
+                    end
                 case 'KKT_based'
                     nlp = self.create_KKT_based_NLP(OCPEC);
             end
@@ -174,13 +165,13 @@ classdef NLP_Formulation < handle
 
         penalty_func = create_penalty_func(self)
 
-        phi_func = create_generalized_primal_gap_function(self, OCPEC)
-
-        phi_func = create_generalized_D_gap_function(self, OCPEC)
+        phi_c_func = create_weighting_generalized_primal_gap_function(self, OCPEC)
 
         [KKT_stationarity_func, KKT_complementarity_func] = create_KKT_reformulation(self, OCPEC)
 
-        nlp = create_gap_constraint_based_NLP(self, OCPEC)
+        nlp = create_generalized_primal_gap_constraint_based_NLP(self, OCPEC)
+
+        nlp = create_generalized_D_gap_constraint_based_NLP(self, OCPEC)
 
         nlp = create_KKT_based_NLP(self, OCPEC)
         

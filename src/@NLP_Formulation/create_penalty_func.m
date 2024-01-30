@@ -8,8 +8,12 @@ import casadi.*
 w = SX.sym('w', 1, 1); % auxiliabry variable for gap function
 mu = SX.sym('mu', 1, 1); % penalty parameter
 
-% L1 penalty function (To Do: L2, barrier penalty function)
-penalty = mu * w;
+switch self.penalty_gap_func_auxiliary_variable
+    case 'none'
+        penalty = 0;
+    case 'L1'
+        penalty = mu * w;
+end
 
 % output
 penalty_func = Function('penalty_func', {w, mu}, {penalty}, {'w', 'mu'}, {'penalty'});

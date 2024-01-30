@@ -34,7 +34,10 @@ classdef NLP_Formulation < handle
         gap_func_smooth_param double {mustBeNonnegative} = 0.001 % used in CHKS smoothing function for max(0, x)
         D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9. b = 1.1)
         D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
-                                                        % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima          
+                                                        % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima                  
+        penalty_gap_func_auxiliary_variable char {mustBeMember(penalty_gap_func_auxiliary_variable, {...
+            'none',...
+            'L1'})} = 'none' % To Do: L2, barrier function
 
         state_equation_discretization char {mustBeMember(state_equation_discretization, {...
             'implicit_Euler'})} = 'implicit_Euler'
@@ -94,6 +97,9 @@ classdef NLP_Formulation < handle
             end
             if self.D_gap_param_b <= self.D_gap_param_a
                 error('D gap function parameter should satisfy: b > a > 0')
+            end
+            if isfield(Option, 'penalty_gap_func_auxiliary_variable')
+                self.penalty_gap_func_auxiliary_variable = Option.penalty_gap_func_auxiliary_variable;
             end
             if isfield(Option, 'state_equation_discretization')
                 self.state_equation_discretization = Option.state_equation_discretization;

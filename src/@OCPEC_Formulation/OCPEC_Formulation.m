@@ -60,6 +60,7 @@ classdef OCPEC_Formulation < handle
                 G, C)
             %OCPEC_Formulation: Construct an instance of this class
             %   Detailed explanation goes here
+            %% formulate OCPEC
             % time parameter
             self.TimeHorizon = TimeHorizon;
             self.nStages = nStages;
@@ -97,7 +98,22 @@ classdef OCPEC_Formulation < handle
                 'x', size(x, 1), 'u', size(u, 1), 'lambda', size(lambda, 1),...
                 'g', size(g, 1), 'G', size(G, 1), 'C', size(C, 1));             
             % function object
-            self.FuncObj = self.create_FuncObj();                        
+            self.FuncObj = self.create_FuncObj();       
+            %% display OCPEC informulation
+            disp('*---------------------------------- OCPEC Information -----------------------------------*')
+            disp('1. time parameter')
+            disp(['time horizon: ............................... ', num2str(self.TimeHorizon)])
+            disp(['discretization stage: ....................... ', num2str(self.nStages)])
+            disp(['time step: .................................. ', num2str(self.timeStep)])            
+            disp('2. problem size')
+            disp(['VI set type: ................................ ', self.VISetType])
+            disp(['number of state variable (x): ............... ', num2str(self.Dim.x)])
+            disp(['number of control variable (u): ............. ', num2str(self.Dim.u)])
+            disp(['number of algebraic variable (lambda): ...... ', num2str(self.Dim.lambda)])
+            disp(['number of VI set inequality (g): ............ ', num2str(self.Dim.g)])
+            disp(['number of path inequality constraint (G): ... ', num2str(self.Dim.G)])
+            disp(['number of path equality constraint (C): ..... ', num2str(self.Dim.C)])
+
         end
 
     end

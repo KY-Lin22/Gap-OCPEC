@@ -152,6 +152,32 @@ classdef NLP_Formulation < handle
             
             %% create function object
             self.FuncObj = self.create_FuncObj(nlp);
+
+            %% display NLP information
+            disp('*----------------------------------- NLP Information ------------------------------------*')
+            disp('1. equilibrium constraint reformulation')
+            disp(['relaxation problem: .................................. ', self.relaxation_problem])
+            switch self.relaxation_problem
+                case 'gap_constraint_based'
+                    disp(['relaxation strategy: ................................. ', self.gap_constraint_relaxation_strategy])
+                    disp(['strongly convex function: ............................ ', self.strongly_convex_func])
+                    disp(['CHKS smoothing parameter: ............................ ', num2str(self.gap_func_smooth_param, '%10.3e')])
+                    switch self.gap_constraint_relaxation_strategy
+                        case 'generalized_primal_gap'
+
+                        case 'generalized_D_gap'
+                            disp(['D gap function parameter (a / b): .................... ', ...
+                                num2str(self.D_gap_param_a), ' / ', num2str(self.D_gap_param_b)])
+                    end
+                    disp(['penalty gap function auxiliary variable: ............. ', self.penalty_gap_func_auxiliary_variable])
+                case 'KKT_based'
+                    disp(['relaxation strategy: ................................. ', self.KKT_complementarity_relaxation_strategy])
+            end
+            disp(['discretization state equation: ....................... ', self.state_equation_discretization])
+            disp('2. Problem Size')
+            disp(['number of decision variable (z): ..................... ', num2str(self.Dim.z)])
+            disp(['number of equality constraint (h): ................... ', num2str(self.Dim.h)])
+            disp(['number of inequality constraint (c): ................. ', num2str(self.Dim.c)])
             
         end
     end

@@ -67,8 +67,8 @@ end
 
 % log (time, param, cost, KKT error, stepSize, natRes)
 Log.param               = zeros(continuationStepNum, 2); % [s, mu] 
-Log.cost                = zeros(continuationStepNum, 3); % [ocp, penalty, total]
-Log.KKT_error           = zeros(continuationStepNum, 3); % [primal, dual_scaled, total]
+Log.cost                = zeros(continuationStepNum, 2); % [ocp, penalty]
+Log.KKT_error           = zeros(continuationStepNum, 2); % [primal, dual_scaled]
 Log.stepSize_primal     = zeros(continuationStepNum, 2); % [min, average]
 Log.stepSize_dual       = zeros(continuationStepNum, 2); % [min, average]
 Log.VI_natural_residual = zeros(continuationStepNum, 1);
@@ -88,7 +88,6 @@ for j = 1 : continuationStepNum
         'ubg', [zeros(NLP.Dim.h, 1); inf*ones(NLP.Dim.c, 1)]);
     % extract solution and information
     z_Opt_j = full(solution_j.x);
-    J_Opt_j = full(solution_j.f);
     J_ocp_j = full(NLP.FuncObj.J_ocp(z_Opt_j, p_j));
     J_penalty_j = full(NLP.FuncObj.J_penalty(z_Opt_j, p_j));
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
@@ -97,8 +96,8 @@ for j = 1 : continuationStepNum
 
     %% step 2: record and print information of the current continuation iterate
     Log.param(j, :) = [p_j(1), p_j(2)];
-    Log.cost(j, :) = [J_ocp_j, J_penalty_j, J_Opt_j];
-    Log.KKT_error(j, :) = [KKT_error_primal_j, KKT_error_dual_j, max(KKT_error_primal_j, KKT_error_dual_j)];
+    Log.cost(j, :) = [J_ocp_j, J_penalty_j];
+    Log.KKT_error(j, :) = [KKT_error_primal_j, KKT_error_dual_j];
     Log.stepSize_primal(j, :) = [min(self.Solver.stats.iterations.alpha_pr(2:end)),...
         sum(self.Solver.stats.iterations.alpha_pr(2:end))/(self.Solver.stats.iter_count)];
     Log.stepSize_dual(j, :) = [min(self.Solver.stats.iterations.alpha_du(2:end)),...
@@ -107,19 +106,19 @@ for j = 1 : continuationStepNum
     Log.iterNum(j) = self.Solver.stats.iter_count;
     Log.timeElapsed(j) = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
     if mod(j, 10) == 1
-        disp('------------------------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = ' step  |     param(s/mu)    | cost(ocp/penalty)  |  KKT(primal/dual)  |  alpha_p(min/ave)  |  alpha_d(min/ave)  | nat_res  | iterNum | time(s) ';
+        disp('---------------------------------------------------------------------------------------------------------------------------------')
+        headMsg = ' step  |   param(s/mu)   | cost(ocp/penalty) | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
         disp(headMsg)
     end
     prevIterMsg = [' ',...
         num2str(j,'%10.2d'), '/', num2str(continuationStepNum,'%10.2d'),' | ',...
-        num2str(Log.param(j, :), '%10.2e'),' | ',...
-        num2str(Log.cost(j, 1 : 2), '%10.2e'),' | ',...
-        num2str(Log.KKT_error(j, 1 : 2), '%10.2e'),' | ',...
-        num2str(Log.stepSize_primal(j, :), '%10.2e'),' | ',...
-        num2str(Log.stepSize_dual(j, :), '%10.2e'),' | ',...
-        num2str(Log.VI_natural_residual(j), '%10.2e'),' |   ',...
-        num2str(Log.iterNum(j), '%10.3d'),'   | ',...
+        num2str(Log.param(j, 1), '%10.1e'), ' ', num2str(Log.param(j, 2), '%10.1e'), ' | ',...
+        num2str(Log.cost(j, 1), '%10.2e'), ' ', num2str(Log.cost(j, 2), '%10.2e'),' | ',...
+        num2str(Log.KKT_error(j, 1), '%10.1e'), ' ', num2str(Log.KKT_error(j, 2), '%10.1e'),' | ',...
+        num2str(Log.stepSize_primal(j, 1), '%10.1e'), ' ', num2str(Log.stepSize_primal(j, 2), '%10.1e'), ' | ',...
+        num2str(Log.stepSize_dual(j, 1), '%10.1e'), ' ' , num2str(Log.stepSize_dual(j, 2), '%10.1e'),' | ',...
+        num2str(Log.VI_natural_residual(j), '%10.1e'),' |   ',...
+        num2str(Log.iterNum(j), '%10.4d'),'  | ',...
         num2str(Log.timeElapsed(j), '%10.4f')];
     disp(prevIterMsg)
     
@@ -140,7 +139,8 @@ for j = 1 : continuationStepNum
         s_trial = min([kappa_s_times .* s_j, s_j.^kappa_s_exp]);
         s_j = max([s_trial, s_End]);
         % update penalty parameter
-        mu_trial = 1/s_j;
+        mu_j = p_j(2);
+        mu_trial = max([1/s_j, mu_j]);
         mu_j = min([mu_trial, mu_End]);
         % update parameter vector
         p_j(1) = s_j;

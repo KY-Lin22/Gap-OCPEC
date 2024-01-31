@@ -39,15 +39,18 @@ classdef IPOPT_Based_Solver < handle
     %% Other method
     methods
         % initialize properties
-        Option = createSolverOption(self)        
+        Option = createSolverOption(self)   
+
+        % create initial guess
+        z_Init = createInitGuess(self)
         
         % solve a sequence of NLP in a homotopy manner from p_Init to p_End 
         [z_Opt, Info] = solveNLP(self, z_Init, p_Init, p_End)
 
         % evaluate natural residual
         natRes = evaluateNaturalResidual(self, z_Opt)
-        
-        % show result
+
+        % show result (TO DO)
         showResult(self, Info)        
     end
     

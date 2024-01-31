@@ -32,7 +32,7 @@ xWeight = [20; 20];
 uWeight = 1;
 L_S = 0.5 * (x - xRef)'*diag(xWeight)*(x - xRef)...
     + 0.5 * u'*diag(uWeight)*u;
-L_T = SX(0,1);
+L_T = 0;
 
 % DVI
 f = [1, -3; -8, 10] * x + [4; 8] * u + [-3; -1] * lambda; % state equation f

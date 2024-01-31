@@ -30,7 +30,7 @@ lambdaMin = 0;
 % cost function
 lambdaWeight = 0;
 L_S = x' * x + u^2 + lambdaWeight * lambda^2;
-L_T = SX(0,1);
+L_T = 0;
 
 % DVI
 f = [0, 1, 0; 0, 0, 1; 0, 0, 0] * x + [0; 0; 1] * u + [0; 0; 1] * lambda; % state equation f

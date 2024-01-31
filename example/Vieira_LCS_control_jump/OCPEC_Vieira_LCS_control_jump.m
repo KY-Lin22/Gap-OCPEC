@@ -29,7 +29,7 @@ lambdaMin = 0;
 
 % cost function
 L_S = x' * x + u^2;
-L_T = SX(0,1);
+L_T = 0;
 
 % DVI
 f = [1, -3; -8, 10] * x + [4; 8] * u + [-3; -1] * lambda; % state equation f

@@ -25,7 +25,7 @@ classdef IPOPT_Based_Solver < handle
             self.NLP = NLP;  
             
             % properties: solver option
-            self.Option = self.createSolverOption();
+            self.Option = self.create_Option();
             
             % properties: solver
             Prob = struct('x', NLP.z, 'f', NLP.J, 'g', [NLP.h; NLP.c], 'p', NLP.p);
@@ -38,20 +38,20 @@ classdef IPOPT_Based_Solver < handle
     
     %% Other method
     methods
-        % initialize properties
-        Option = createSolverOption(self)   
+        % create solver option
+        Option = create_Option(self)   
 
         % create initial guess
-        z_Init = createInitGuess(self)
+        z_Init = create_initial_guess(self)
         
         % solve a sequence of NLP in a homotopy manner from p_Init to p_End 
-        [z_Opt, Info] = solveNLP(self, z_Init, p_Init, p_End)
+        [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
 
         % evaluate natural residual
-        natRes = evaluateNaturalResidual(self, z_Opt)
+        natRes = evaluate_natural_residual(self, z_Opt)
 
         % show result (TO DO)
-        showResult(self, Info)        
+        show_result(self, Info)        
     end
     
 end

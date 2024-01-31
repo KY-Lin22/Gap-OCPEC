@@ -1,4 +1,4 @@
-function natRes = evaluateNaturalResidual(self, z_Opt)
+function natRes = evaluate_natural_residual(self, z_Opt)
 %UNTITLED6 Summary of this function goes here
 %   Detailed explanation goes here
 import casadi.*

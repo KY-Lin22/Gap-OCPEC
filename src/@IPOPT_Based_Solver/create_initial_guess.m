@@ -1,4 +1,4 @@
-function z_Init = createInitGuess(self)
+function z_Init = create_initial_guess(self)
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 % z_Init = randn(NLP.Dim.z, 1);

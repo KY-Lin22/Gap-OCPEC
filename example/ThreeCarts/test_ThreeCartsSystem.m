@@ -21,7 +21,7 @@ NLP = NLP_Formulation(OCPEC, Option);
 solver = IPOPT_Based_Solver(OCPEC, NLP);
 
 % create initial guess
-z_Init = solver.createInitGuess();
+z_Init = solver.create_initial_guess();
 
 %% parameter and problem solve
 % parameter
@@ -35,7 +35,7 @@ solver.Option.Homotopy.kappa_s_times = 0.8;
 solver.Option.Homotopy.kappa_s_exp = 1.2;
 
 % solve
-[z_Opt, Info] = solver.solveNLP(z_Init, p_Init, p_End);
+[z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
 
 Z_Opt = reshape(z_Opt, NLP.Dim.z_Node(end), OCPEC.nStages);
 

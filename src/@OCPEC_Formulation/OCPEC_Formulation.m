@@ -97,13 +97,13 @@ classdef OCPEC_Formulation < handle
                 'x', size(x, 1), 'u', size(u, 1), 'lambda', size(lambda, 1),...
                 'g', size(g, 1), 'G', size(G, 1), 'C', size(C, 1));             
             % function object
-            self.FuncObj = self.createFuncObj();                        
+            self.FuncObj = self.create_FuncObj();                        
         end
 
     end
     %% Other method
     methods
-        FuncObj = createFuncObj(self)
+        FuncObj = create_FuncObj(self)
     end
         
 end

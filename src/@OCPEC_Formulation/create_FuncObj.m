@@ -1,4 +1,4 @@
-function FuncObj = createFuncObj(self)
+function FuncObj = create_FuncObj(self)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 import casadi.*

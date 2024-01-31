@@ -1,4 +1,4 @@
-function [z_Opt, Info] = solveNLP(self, z_Init, p_Init, p_End)
+function [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
 % solve NLP with given z_Init, p_Init, and p_End by IPOPT using continuation method
 % NLP has the form:
 %  min  J(z, p),
@@ -8,8 +8,8 @@ function [z_Opt, Info] = solveNLP(self, z_Init, p_Init, p_End)
 %        p is the parameter,
 %        J is the cost, and h, c are the constraints
 % Syntax:
-%          [z_Opt, Info] = solveNLP(self, z_Init, p_Init, p_End)
-%          [z_Opt, Info] = self.solveNLP(z_Init, p_Init, p_End)
+%          [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
+%          [z_Opt, Info] = self.solve_NLP(z_Init, p_Init, p_End)
 % Argument:
 %          z_Init: double, NLP.Dim.z X 1, initial guess
 %          p_Init: double, problem parameter (initial) p = [s; mu]
@@ -92,7 +92,7 @@ for j = 1 : continuationStepNum
     J_penalty_j = full(NLP.FuncObj.J_penalty(z_Opt_j, p_j));
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
     KKT_error_dual_j = self.Solver.stats.iterations.inf_du(end); 
-    VI_nat_res_j = self.evaluateNaturalResidual(z_Opt_j);
+    VI_nat_res_j = self.evaluate_natural_residual(z_Opt_j);
 
     %% step 2: record and print information of the current continuation iterate
     Log.param(j, :) = [p_j(1), p_j(2)];

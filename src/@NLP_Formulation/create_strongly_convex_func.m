@@ -9,8 +9,8 @@ x = SX.sym('x', varDim, 1);
 switch self.strongly_convex_func
     case 'quadratic'
         d = 0.5 * x' * eye(varDim) * x; 
-    case 'general'
-        % TODO
+    case 'exponential'
+        d = sum(exp(x));
 end
 % gradient and hessian
 dx = jacobian(d, x);

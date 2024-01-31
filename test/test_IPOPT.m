@@ -14,7 +14,13 @@ J = (lambda - 1)^2 + (eta - 1)^2;
 relax_prob_type = 'primal_gap';
 switch relax_prob_type
     case 'primal_gap'
-        phi = 0.5 * (eta^2 - (max(0, eta - lambda))^2);
+        c = 1;
+        epsilon = 0.001;
+        stationary_point_c = log(exp(lambda) - (1/c) * eta);
+        omega_c = 0.5*(sqrt(stationary_point_c.^2 + 4 * epsilon^2) + stationary_point_c);
+        p_c = exp(lambda) - exp(omega_c) + exp(lambda) * (omega_c - lambda);
+        phi_c = eta' * (lambda - omega_c) + c * p_c;
+        phi = phi_c;
         g = [phi - w;...
             lambda;...
             s - w];      
@@ -36,7 +42,7 @@ solver = casadi.nlpsol('solver', 'ipopt', Prob, Option);
 
 %% solve
 s_0 = 1e-12;
-x_0 = [-1; -1; 1];
+x_0 = [1; 1; 1];
 solution = solver('x0', x_0, 'p', s_0, 'lbg', lbg, 'ubg', ubg);
 % extract solution
 x_Opt = full(solution.x);

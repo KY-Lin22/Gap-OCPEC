@@ -23,8 +23,8 @@ switch OCPEC.VISetType
         switch self.strongly_convex_func
             case 'quadratic'
                 stationary_point_c = lambda - (1/c) * eta; 
-            case 'general'
-                stationary_point_c = []; % To Be Done                
+            case 'exponential'
+                stationary_point_c = log(exp(lambda) - (1/c) * eta);             
         end
         % smoothing omega = mid(bl, bu, stationary_point) by CHKS function 
         % ref: example 2 in ''A new look at smoothing Newton methods for NCPs and BVI'', Mathematical Programming, 2000
@@ -39,8 +39,8 @@ switch OCPEC.VISetType
         switch self.strongly_convex_func
             case 'quadratic'
                 stationary_point_c = lambda - (1/c) * eta;
-            case 'general'
-                stationary_point_c = []; % To Be Done
+            case 'exponential'
+                stationary_point_c = log(exp(lambda) - (1/c) * eta); 
         end
         % smoothing omega = max(0, stationary_point) by CHKS function
         omega_c = 0.5*(sqrt(stationary_point_c.^2 + 4 * epsilon^2) + stationary_point_c);

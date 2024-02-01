@@ -1,6 +1,7 @@
 function OCPEC = OCPEC_Vieira_LCS_control_jump()
-%UNTITLED2 Summary of this function goes here
-%   Detailed explanation goes here
+% ref: example 6 in ''Quadratic Optimal Control of Linear Complementarity 
+%      Systems : First order necessary conditions and numerical analysis''
+%      2018, A. Vieira, et. al,
 import casadi.*
 %%
 % time parameter

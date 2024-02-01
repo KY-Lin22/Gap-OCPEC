@@ -1,42 +1,41 @@
-function OCPEC = OCPEC_Vieira_LCS_state_jump()
-% ref: example 7 in ''Quadratic Optimal Control of Linear Complementarity 
+function OCPEC = OCPEC_Vieira_LCS_higher_dim()
+% ref: example 3 in ''Quadratic Optimal Control of Linear Complementarity 
 %      Systems : First order necessary conditions and numerical analysis''
 %      2018, A. Vieira, et. al,
 import casadi.*
 %%
 % time parameter
-TimeHorizon = 10; % time horizon T
-nStages = 1000; % number of discretized stages
+TimeHorizon = 1; % time horizon T
+nStages = 100; % number of discretized stages
 timeStep = TimeHorizon ./ nStages; % discretization time step
 
 % initial and reference state
-x0 = [-2; 1; -1]; % initial state
-xRef = [0; 0; 0]; % ref state
+x0 = [-0.5; 1]; % initial state
+xRef = [0; 0]; % ref state
 
 % variable and their bounds
-xDim = 3;
-uDim = 1;
-lambdaDim = 1;
+xDim = 2;
+uDim = 2;
+lambdaDim = 2;
 x = SX.sym('x', xDim, 1);
 u = SX.sym('u', uDim, 1);
 lambda = SX.sym('lambda', lambdaDim, 1);
 
-xMax = [inf; inf; inf];
-xMin = [-inf; -inf; -inf];
-uMax = inf;
-uMin = -inf;
-lambdaMax = inf;
-lambdaMin = 0;
+xMax = [inf; inf];
+xMin = [-inf; -inf];
+uMax = [inf; inf];
+uMin = [-inf; -inf];
+lambdaMax = [inf; inf];
+lambdaMin = [0; 0];
 
 % cost function
-lambdaWeight = 0;
-L_S = x' * x + u^2 + lambdaWeight * lambda^2;
+L_S = x' * x + 25* (u' * u);
 L_T = 0;
 
 % DVI
-f = [0, 1, 0; 0, 0, 1; 0, 0, 0] * x + [0; 0; 1] * u + [0; 0; 1] * lambda; % state equation f
+f = [1, 2; 2, 1] * x + [1, 3; 2, 1] * u + [-1, 1; -1, 1] * lambda; % state equation f
 g = lambda;
-F = [1, 0, 0] * x + u; % VI function F
+F = [3, -1; -2, 0] * x + [1, -1; -1, 2] * u + lambda; % VI function F
 VISetType = 'nonnegative_orthant'; 
 % inequality constraint G >= 0
 G = SX(0,1);
@@ -52,4 +51,3 @@ OCPEC = OCPEC_Formulation(...
     f, g, F, VISetType,...
     G, C);
 end
-

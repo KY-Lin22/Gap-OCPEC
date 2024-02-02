@@ -29,7 +29,7 @@ lambdaMax = inf;
 lambdaMin = 0;
 
 % cost function
-alpha = 1;
+alpha = 10;
 L_S = x'*x + u^2 + alpha*lambda^2;
 L_T = 0;
 

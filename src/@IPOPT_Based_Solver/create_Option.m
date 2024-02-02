@@ -26,5 +26,7 @@ Option.NLP_Solver.ipopt.max_iter = 3000; % default 3000
 Option.Homotopy.kappa_s_times = 0.9;
 Option.Homotopy.kappa_s_exp = 1.1;
 
+Option.Homotopy.VI_nat_res_tol = 1e-2;
+
 end
 

@@ -48,39 +48,41 @@ end
 % load parameter
 kappa_s_times = Option.Homotopy.kappa_s_times;
 kappa_s_exp = Option.Homotopy.kappa_s_exp;
+VI_nat_res_tol = Option.Homotopy.VI_nat_res_tol;
 
 %% create record for time and log 
-% evaluate the number of continuation step based on s_Init and s_End
+% evaluate the max number of continuation step based on given s_Init, s_End 
+% and specified kappa_s_times, kappa_s_exp
 s_Init = p_Init(1);
 s_End = p_End(1);
 s_test = s_Init;
-continuationStepNum = 1;
+continuationStepMaxNum = 1;
 while true
     if s_test == s_End
         break
     else        
         s_trial = min([kappa_s_times * s_test, s_test^kappa_s_exp], [], 2);
         s_test = max([s_trial, s_End], [], 2);
-        continuationStepNum = continuationStepNum + 1;
+        continuationStepMaxNum = continuationStepMaxNum + 1;
     end
 end
 
 % log (time, param, cost, KKT error, stepSize, natRes)
-Log.param               = zeros(continuationStepNum, 2); % [s, mu] 
-Log.cost                = zeros(continuationStepNum, 2); % [ocp, penalty]
-Log.KKT_error           = zeros(continuationStepNum, 2); % [primal, dual_scaled]
-Log.stepSize_primal     = zeros(continuationStepNum, 2); % [min, average]
-Log.stepSize_dual       = zeros(continuationStepNum, 2); % [min, average]
-Log.VI_natural_residual = zeros(continuationStepNum, 1);
-Log.iterNum             = zeros(continuationStepNum, 1);
-Log.timeElapsed         = zeros(continuationStepNum, 1); % elapsed time in each continuation step
+Log.param               = zeros(continuationStepMaxNum, 2); % [s, mu] 
+Log.cost                = zeros(continuationStepMaxNum, 2); % [ocp, penalty]
+Log.KKT_error           = zeros(continuationStepMaxNum, 2); % [primal, dual_scaled]
+Log.stepSize_primal     = zeros(continuationStepMaxNum, 2); % [min, average]
+Log.stepSize_dual       = zeros(continuationStepMaxNum, 2); % [min, average]
+Log.VI_natural_residual = zeros(continuationStepMaxNum, 1);
+Log.iterNum             = zeros(continuationStepMaxNum, 1);
+Log.timeElapsed         = zeros(continuationStepMaxNum, 1); % elapsed time in each continuation step
 
 %% continuation loop (j: continuation step counter)
 z_Init_j = z_Init;
 p_j = p_Init; 
 mu_End = p_End(2);
-
-for j = 1 : continuationStepNum
+j = 1;
+while true
     %% step 1: solve a NLP with given p
     % solve problem
     solution_j = self.Solver('x0', z_Init_j, 'p', p_j,...
@@ -111,7 +113,7 @@ for j = 1 : continuationStepNum
         disp(headMsg)
     end
     prevIterMsg = [' ',...
-        num2str(j,'%10.2d'), '/', num2str(continuationStepNum,'%10.2d'),' | ',...
+        num2str(j,'%10.2d'), '/', num2str(continuationStepMaxNum,'%10.2d'),' | ',...
         num2str(Log.param(j, 1), '%10.1e'), ' ', num2str(Log.param(j, 2), '%10.1e'), ' | ',...
         num2str(Log.cost(j, 1), '%10.2e'), ' ', num2str(Log.cost(j, 2), '%10.2e'),' | ',...
         num2str(Log.KKT_error(j, 1), '%10.1e'), ' ', num2str(Log.KKT_error(j, 2), '%10.1e'),' | ',...
@@ -121,14 +123,27 @@ for j = 1 : continuationStepNum
         num2str(Log.iterNum(j), '%10.4d'),'  | ',...
         num2str(Log.timeElapsed(j), '%10.4f')];
     disp(prevIterMsg)
-    
-    %% step 3: check ternimation based on the current homotopy iterate
-    if strcmp(self.Solver.stats.return_status, 'Solve_Succeeded') && (j == continuationStepNum)
-        % IPOPT at the final homotopy iteration finds the optimal solution
+
+    %% step 3: check ternimation based on the current homotopy iterate   
+    solver_stats = (strcmp(self.Solver.stats.return_status, 'Solve_Succeeded')) ...
+        || (strcmp(self.Solver.stats.return_status, 'Solved_To_Acceptable_Level'))...
+        || (strcmp(self.Solver.stats.return_status, 'Feasible_Point_Found'))...
+        || (strcmp(self.Solver.stats.return_status, 'Search_Direction_Becomes_Too_Small'));
+    if solver_stats && (VI_nat_res_j <= VI_nat_res_tol)
+        % IPOPT at this homotopy iteration finds the optimal solution satisfying the desired VI natural residual
         exitFlag = true;
-    elseif ~strcmp(self.Solver.stats.return_status, 'Solve_Succeeded')
+        terminalStatus = 1;
+        terminalMsg = self.Solver.stats.return_status;
+    elseif ~solver_stats
         % IPOPT at this homotopy iteration fails to find the optimal solution
         exitFlag = true;
+        terminalStatus = 0;
+        terminalMsg = self.Solver.stats.return_status;
+    elseif j == continuationStepMaxNum
+        % IPOPT still can not find the optimal solution in the final homotopy iteration
+        exitFlag = true;
+        terminalStatus = 0;
+        terminalMsg = 'IPOPT can not find the optimal solution satisfying the desired VI natural residual';
     else
         % IPOPT at this homotopy iteration (not the final) finds the optimal solution, prepare for next homotopy iteration
         exitFlag = false;
@@ -145,16 +160,18 @@ for j = 1 : continuationStepNum
         % update parameter vector
         p_j(1) = s_j;
         p_j(2) = mu_j;
-        
+        % update continuation step counter
+        j = j + 1;
     end
-    
+
     %% step 4: check exitFlag and return optimal solution
     if exitFlag
         % return the current homotopy iterate as the optimal solution
         z_Opt = z_Opt_j;
         % create Info
-        Info.continuationStepNum = continuationStepNum;
-        Info.terminalMsg = self.Solver.stats.return_status;        
+        Info.continuationStepNum = j;
+        Info.terminalStatus = terminalStatus; 
+        Info.terminalMsg = terminalMsg;        
         Info.cost.ocp = J_ocp_j;
         Info.cost.penalty = J_penalty_j;
         Info.KKT_error.primal = KKT_error_primal_j;
@@ -162,10 +179,17 @@ for j = 1 : continuationStepNum
         Info.VI_natural_residual = VI_nat_res_j;
         Info.time = sum(Log.timeElapsed);
         Info.iterNum = sum(Log.iterNum);
-        Info.Log = Log;
+        Info.Log.param = Log.param(1 : j, :);
+        Info.Log.cost = Log.cost(1 : j, :);
+        Info.Log.KKT_error = Log.KKT_error(1 : j, :);
+        Info.Log.stepSize_primal = Log.stepSize_primal(1 : j, :);
+        Info.Log.stepSize_dual = Log.stepSize_dual(1 : j, :);
+        Info.Log.VI_natural_residual = Log.VI_natural_residual(1 : j, :);
+        Info.Log.iterNum = Log.iterNum(1 : j, :);
+        Info.Log.timeElapsed = Log.timeElapsed(1 : j, :);
         % display homotopy terminal result and then break        
         disp('*--------------------------------------------- Solution Information ----------------------------------------------*')
-        disp(['1. Terminal Status: ', Info.terminalMsg]) 
+        disp(['1. Terminal Message: ', Info.terminalMsg]) 
         disp('2. Continuation Step Message')
         disp(['- TimeElapsed: ................................. ', num2str(Info.time,'%10.3f'), ' s'])
         disp(['- Continuation Step: ........................... ', num2str(Info.continuationStepNum)])        
@@ -178,9 +202,10 @@ for j = 1 : continuationStepNum
         disp(['- KKT(primal): ................................. ', num2str(Info.KKT_error.primal,'%10.3e'), '; '])
         disp(['- KKT(dual): ................................... ', num2str(Info.KKT_error.dual,'%10.3e')  '; '])
         disp(['- equilibrium constraint(natural residual): .... ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
+
         break
     end
-    
+
 end
 
 end

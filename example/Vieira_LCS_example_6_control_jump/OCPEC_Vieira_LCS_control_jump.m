@@ -6,7 +6,7 @@ import casadi.*
 %%
 % time parameter
 TimeHorizon = 1; % time horizon T
-nStages = 1000; % number of discretized stages
+nStages = 100; % number of discretized stages
 timeStep = TimeHorizon ./ nStages; % discretization time step
 
 % initial and reference state

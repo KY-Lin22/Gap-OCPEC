@@ -127,8 +127,7 @@ while true
     %% step 3: check ternimation based on the current homotopy iterate   
     solver_stats = (strcmp(self.Solver.stats.return_status, 'Solve_Succeeded')) ...
         || (strcmp(self.Solver.stats.return_status, 'Solved_To_Acceptable_Level'))...
-        || (strcmp(self.Solver.stats.return_status, 'Feasible_Point_Found'))...
-        || (strcmp(self.Solver.stats.return_status, 'Search_Direction_Becomes_Too_Small'));
+        || (strcmp(self.Solver.stats.return_status, 'Feasible_Point_Found'));
     if solver_stats && (VI_nat_res_j <= VI_nat_res_tol)
         % IPOPT at this homotopy iteration finds the optimal solution satisfying the desired VI natural residual
         exitFlag = true;

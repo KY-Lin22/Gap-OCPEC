@@ -3,7 +3,7 @@ clc
 
 %% create OCPEC, NLP, and solver
 % construct OCPEC problem
-OCPEC = OCPEC_Vieira_LCS_index_one();
+OCPEC = OCPEC_Vieira_LCS_relative_degree_one();
 
 % discretize OCPEC into a NLP problem
 Option.relaxation_problem = 'gap_constraint_based'; % 'gap_constraint_based', 'KKT_based'
@@ -40,4 +40,4 @@ solver.Option.Homotopy.kappa_s_exp = 1.2;
 Z_Opt = reshape(z_Opt, NLP.Dim.z_Node(end), OCPEC.nStages);
 
 %% show result
-plotResult_Vieira_LCS_index_one(OCPEC, NLP, z_Opt)
+plotResult_Vieira_LCS_relative_degree_one(OCPEC, NLP, z_Opt)

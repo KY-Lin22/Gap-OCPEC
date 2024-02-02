@@ -1,4 +1,4 @@
-function plotResult_Vieira_LCS_index_one(OCPEC, NLP, z_Opt)
+function plotResult_Vieira_LCS_relative_degree_one(OCPEC, NLP, z_Opt)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 Z_Opt = reshape(z_Opt, NLP.Dim.z_Node(end), OCPEC.nStages);

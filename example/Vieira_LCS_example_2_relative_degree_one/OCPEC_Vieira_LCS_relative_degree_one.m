@@ -1,4 +1,4 @@
-function OCPEC = OCPEC_Vieira_LCS_index_one()
+function OCPEC = OCPEC_Vieira_LCS_relative_degree_one()
 % ref: example 2 in ''Quadratic Optimal Control of Linear Complementarity 
 %      Systems : First order necessary conditions and numerical analysis''
 %      2018, A. Vieira, et. al,

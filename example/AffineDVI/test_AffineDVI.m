@@ -9,10 +9,10 @@ OCPEC = OCPEC_AffineDVI();
 Option.relaxation_problem = 'gap_constraint_based'; % 'gap_constraint_based', 'KKT_based'
 Option.gap_constraint_relaxation_strategy = 'generalized_primal_gap'; % 'generalized_primal_gap', 'generalized_D_gap'
 Option.KKT_complementarity_relaxation_strategy = 'Scholtes'; % 'Scholtes', 'Lin_Fukushima', 'Kadrani'
-Option.strongly_convex_func = 'exponential'; % 'quadratic', 'exponential'
+Option.strongly_convex_func = 'quadratic'; % 'quadratic', 'exponential'
 Option.gap_func_smooth_param = 0.001;
-Option.D_gap_param_a = 0.8;
-Option.D_gap_param_b = 1.2;
+% Option.D_gap_param_a = 0.8;
+% Option.D_gap_param_b = 1.2;
 Option.penalty_gap_func_auxiliary_variable = 'L2'; % 'none', 'L1', 'L2'
 NLP = NLP_Formulation(OCPEC, Option);
 
@@ -25,9 +25,9 @@ z_Init = ones(NLP.Dim.z, 1);
 %% parameter and problem solve
 % parameter
 s_Init = 1e1;
-s_End = 1e-3; 
+s_End = 1e-8; 
 mu_Init = 1e0;
-mu_End = 1e4;
+mu_End = 1e5;
 p_Init = [s_Init; mu_Init];
 p_End = [s_End; mu_End];
 solver.Option.Homotopy.kappa_s_times = 0.8;

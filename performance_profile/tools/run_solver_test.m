@@ -1,13 +1,7 @@
-function Rec = run_test(solver_set)
+function Rec = run_solver_test(solver_set, p_Init, p_End)
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
-% parameter
-s_Init = 1e0;
-s_End = 1e-8;
-mu_Init = 1e0;
-mu_End = 1e4;
-p_Init = [s_Init; mu_Init];
-p_End = [s_End; mu_End];
+
 % record cost and time
 Rec.cost = zeros(size(solver_set));
 Rec.time = zeros(size(solver_set));

@@ -20,6 +20,7 @@ classdef IPOPT_Based_Solver < handle
             %IPOPT_Based_Solver Construct an instance of this class
             %   Detailed explanation goes here
             import casadi.*
+            disp('creating solver...')
             % properties: OCPEC and NLP
             self.OCPEC = OCPEC;
             self.NLP = NLP;  
@@ -32,6 +33,8 @@ classdef IPOPT_Based_Solver < handle
             
             NLP_Solver_Option = self.Option.NLP_Solver;
             self.Solver = nlpsol('Solver', 'ipopt', Prob, NLP_Solver_Option);
+
+            disp('Done!')
         end
         
     end

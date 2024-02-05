@@ -1,4 +1,4 @@
-function [Rec, NLP_reformulation_name] = run_test_smoothing_param()
+function [Rec, NLP_reformulation_name] = run_test_primal_gap_reformulation()
 %using primal gap based NLP to test different smoothing param
 %   Detailed explanation goes here
 

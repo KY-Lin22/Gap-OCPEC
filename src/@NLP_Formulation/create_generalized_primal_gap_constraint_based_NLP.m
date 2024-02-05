@@ -84,7 +84,7 @@ phi_c_map = self.phi_c_func.map(OCPEC.nStages);
 % cost
 L_S_stage = L_S_map(X, U, LAMBDA);
 L_T = OCPEC.FuncObj.L_T(X(:, end));
-penalty_stage = penalty_map(W - 0.5*s, mu);
+penalty_stage = penalty_map(W, mu);
 % discretized state equation
 f_stage = f_map(XPrev, X, U, LAMBDA);
 % VI function and set

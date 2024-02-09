@@ -90,6 +90,7 @@ while true
         'ubg', [zeros(NLP.Dim.h, 1); inf*ones(NLP.Dim.c, 1)]);
     % extract solution and information
     z_Opt_j = full(solution_j.x);
+    dual_var_Opt_j = full(solution_j.lam_g);
     J_ocp_j = full(NLP.FuncObj.J_ocp(z_Opt_j, p_j));
     J_penalty_j = full(NLP.FuncObj.J_penalty(z_Opt_j, p_j));
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
@@ -170,7 +171,8 @@ while true
         % create Info
         Info.continuationStepNum = j;
         Info.terminalStatus = terminalStatus; 
-        Info.terminalMsg = terminalMsg;        
+        Info.terminalMsg = terminalMsg; 
+        Info.dual_var = dual_var_Opt_j;
         Info.cost.ocp = J_ocp_j;
         Info.cost.penalty = J_penalty_j;
         Info.KKT_error.primal = KKT_error_primal_j;

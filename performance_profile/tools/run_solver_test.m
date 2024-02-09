@@ -5,6 +5,7 @@ function Rec = run_solver_test(solver_set, p_Init, p_End)
 % record cost and time
 Rec.cost = zeros(size(solver_set));
 Rec.time = zeros(size(solver_set));
+Rec.dual_var_inf_norm = zeros(size(solver_set));
 % solve
 for i = 1 : size(solver_set, 1)
     for j = 1 : size(solver_set, 2)
@@ -18,10 +19,12 @@ for i = 1 : size(solver_set, 1)
         if Info_i_j.terminalStatus == 1
             Rec.cost(i, j) = Info_i_j.cost.ocp;
             Rec.time(i, j) = Info_i_j.time;
+            Rec.dual_var_inf_norm(i, j) = norm(Info_i_j.dual_var, inf);
         else
             % set fail case as inf
             Rec.cost(i, j) = inf;
             Rec.time(i, j) = inf;
+            Rec.dual_var_inf_norm(i, j) = inf;
         end
     end
 end

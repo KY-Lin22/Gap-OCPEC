@@ -18,6 +18,6 @@ solver_name = NLP_reformulation_name;
 %
 n_p = size(performance_matrix, 1);
 % problem_ploted_index = reshape([1 : 4: 44; 2 : 4: 44], [], 1);
-solver_ploted_index = [1, 2, 3, 5, 7];
+solver_ploted_index = [1, 2, 3, 4, 5, 6, 7];
 
 plot_performance_profile(performance_matrix(:, solver_ploted_index), solver_name(solver_ploted_index))

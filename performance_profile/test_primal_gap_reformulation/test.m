@@ -4,7 +4,7 @@ clear all
 clc
 
 % run test (it needs about 30 min)
-% [Rec, NLP_reformulation_name] = run_test_primal_gap_reformulation();
+[Rec, NLP_reformulation_name] = run_test_primal_gap_reformulation();
 
 save('Data_performance_test.mat', 'Rec', 'NLP_reformulation_name')
 

@@ -9,11 +9,11 @@ clc
 save('Data_performance_test.mat', 'Rec', 'NLP_reformulation_name')
 
 %%
-% Data_performance_test = load('Data_performance_test.mat');
+Data_performance_test = load('Data_performance_test.mat');
 
 %
-performance_matrix = Rec.time;
-solver_name = NLP_reformulation_name;
+performance_matrix = Data_performance_test.Rec.time;
+solver_name = Data_performance_test.NLP_reformulation_name;
 
 %
 n_p = size(performance_matrix, 1);

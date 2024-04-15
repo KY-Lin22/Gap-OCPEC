@@ -8,7 +8,7 @@ classdef OCPEC_Formulation < handle
     %       C(x, u) = 0,
     
     properties
-        TimeHorizon % time horizon
+        timeHorizon % time horizon
         nStages % number of discretized stage
         timeStep % discretization time step
         
@@ -43,7 +43,7 @@ classdef OCPEC_Formulation < handle
     %% Constructor method     
     methods
         function self = OCPEC_Formulation(...
-                TimeHorizon, nStages, timeStep,...
+                timeHorizon, nStages, timeStep,...
                 x0, ...
                 x, u, lambda,...
                 L_T, L_S,...
@@ -53,7 +53,7 @@ classdef OCPEC_Formulation < handle
             %   Detailed explanation goes here
             %% formulate OCPEC
             % time parameter
-            self.TimeHorizon = TimeHorizon;
+            self.timeHorizon = timeHorizon;
             self.nStages = nStages;
             self.timeStep = timeStep;
             % initial state
@@ -70,10 +70,8 @@ classdef OCPEC_Formulation < handle
             self.g = g;
             self.F = F;             
             self.VISetType = VISetType;
-            if strcmp(self.VISetType, 'box_constraint')             
-                self.bl = bl;
-                self.bu = bu;
-            end
+            self.bl = bl;
+            self.bu = bu;
             % inequality and equality path constraint
             self.G = G;
             self.C = C;
@@ -83,11 +81,11 @@ classdef OCPEC_Formulation < handle
                 'g', size(g, 1), 'G', size(G, 1), 'C', size(C, 1));             
             % function object
             self.FuncObj = self.create_FuncObj(); 
-            
+
             %% display OCPEC informulation
             disp('*---------------------------------- OCPEC Information -----------------------------------*')
             disp('1. time parameter')
-            disp(['time horizon: ............................... ', num2str(self.TimeHorizon)])
+            disp(['time horizon: ............................... ', num2str(self.timeHorizon)])
             disp(['discretization stage: ....................... ', num2str(self.nStages)])
             disp(['time step: .................................. ', num2str(self.timeStep)])            
             disp('2. problem size')

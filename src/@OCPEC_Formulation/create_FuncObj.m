@@ -3,7 +3,7 @@ function FuncObj = create_FuncObj(self)
 %   Detailed explanation goes here
 import casadi.*
 %% Jacobian
-glambda = jacobian(self.g, self.lambda);
+g_grad = jacobian(self.g, self.lambda);
 
 %% function object
 % cost function
@@ -15,7 +15,7 @@ FuncObj.f = Function('f', {self.x, self.u, self.lambda}, {self.f}, {'x', 'u', 'l
 FuncObj.g = Function('g', {self.lambda}, {self.g}, {'lambda'}, {'g'});
 FuncObj.F = Function('F', {self.x, self.u, self.lambda}, {self.F}, {'x', 'u', 'lambda'}, {'F'});
 
-FuncObj.glambda = Function('glambda', {self.lambda}, {glambda}, {'lambda'}, {'glambda'});
+FuncObj.g_grad = Function('g_grad', {self.lambda}, {g_grad}, {'lambda'}, {'g_grad'});
 
 % inequality and equality constraint 
 FuncObj.G = Function('G', {self.x, self.u}, {self.G}, {'x', 'u'}, {'G'});

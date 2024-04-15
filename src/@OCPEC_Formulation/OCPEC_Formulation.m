@@ -58,7 +58,7 @@ classdef OCPEC_Formulation < handle
             self.timeStep = timeStep;
             % initial state
             self.x0 = x0;            
-            % variable and their bounds
+            % variable
             self.x = x;
             self.u = u;
             self.lambda = lambda;             

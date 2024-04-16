@@ -5,19 +5,17 @@ function penalty_func = create_penalty_func(self)
 import casadi.*
 
 % symbolic variable
-w = SX.sym('w', 1, 1); % auxiliabry variable for gap function
-mu = SX.sym('mu', 1, 1); % penalty parameter
-
-switch self.penalty_gap_func_auxiliary_variable
+w = SX.sym('w', 1, 1); % scalar auxiliabry variable for gap function
+% penalty function formulation
+switch self.gap_func_auxiliary_variable_penalty
     case 'none'
         penalty = 0;
     case 'L1'
-        penalty = mu * w;
+        penalty = w;
     case 'L2'
-        penalty = mu * w^2;
+        penalty = w^2;
 end
-
 % output
-penalty_func = Function('penalty_func', {w, mu}, {penalty}, {'w', 'mu'}, {'penalty'});
+penalty_func = Function('penalty_func', {w}, {penalty}, {'w'}, {'penalty'});
 
 end

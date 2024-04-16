@@ -12,9 +12,9 @@ s = SX.sym('s', 1, 1); % relaxation parameter for complementarity condition
 
 %% KKT stationarity (equality)
 F = OCPEC.FuncObj.F(x, u, lambda);
-glambda = OCPEC.FuncObj.glambda(lambda);
+g_grad = OCPEC.FuncObj.g_grad(lambda);
 
-KKT_stationarity = F - glambda' * zeta;
+KKT_stationarity = F - g_grad' * zeta;
 
 KKT_stationarity_func = Function('KKT_stationarity_func',...
     {x, u, lambda, zeta}, {KKT_stationarity},...
@@ -31,6 +31,5 @@ switch self.KKT_complementarity_relaxation_strategy
 end
 KKT_complementarity_func = Function('KKT_complementarity_func',...
     {zeta, w, s}, {KKT_complementarity},  {'zeta', 'w', 's'}, {'KKT_complementarity'});
-
 
 end

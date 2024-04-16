@@ -21,41 +21,25 @@ classdef NLP_Formulation < handle
             })} = 'gap_constraint_based' 
         gap_constraint_relaxation_strategy char {mustBeMember(gap_constraint_relaxation_strategy, {...
             'generalized_primal_gap',...
-            'generalized_D_gap'})} = 'generalized_primal_gap'
+            'generalized_D_gap'...
+            })} = 'generalized_primal_gap'
         KKT_complementarity_relaxation_strategy char {mustBeMember(KKT_complementarity_relaxation_strategy, {...
             'Scholtes',...
             'Lin_Fukushima',...
-            'Kadrani'})} = 'Scholtes'
+            'Kadrani'...
+            })} = 'Scholtes'
 
         strongly_convex_func char {mustBeMember(strongly_convex_func, {...
             'quadratic',...
-            'exponential'...
             })} = 'quadratic'  % strongly convex function in Auchmuty's saddle function       
         gap_func_smooth_param double {mustBeNonnegative} = 0.001 % used in CHKS smoothing function for max(0, x) and mid(bl, bu, x)
         D_gap_param_a double {mustBeNonnegative} = 0.8; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
         D_gap_param_b double {mustBeNonnegative} = 1.2; % Ref: Theoretical and numerical investigation of the D-gap function   
                                                         % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima                  
-        penalty_gap_func_auxiliary_variable char {mustBeMember(penalty_gap_func_auxiliary_variable, {...
+        gap_func_auxiliary_variable_penalty char {mustBeMember(gap_func_auxiliary_variable_penalty, {...
             'none',...
             'L1',...
-            'L2'})} = 'L2' % To Do: barrier function
-
-        state_equation_discretization char {mustBeMember(state_equation_discretization, {...
-            'implicit_Euler'})} = 'implicit_Euler'
-    end
-
-    properties
-        discre_state_equ_func % function object, discretization state equation
-
-        d_func % function object, strongly convex function d  
-        d_grad % function object, gradient of the strongly convex function d
-        d_hessian % function object, hessian of the strongly convex function d   
-        OmegaEvalProb % struct, strongly concave maximization problem to evaluate omega
-        penalty_func % function object, penalty function for certain variables
-        phi_c_func % function object, weighting generalized primal gap function phi_c for VI
-
-        KKT_stationarity_func % function object, KKT stationarity condition for VI
-        KKT_complementarity_func % function object, KKT complementarity condition for VI 
+            'L2'})} = 'L2' % To Do: barrier function and Huber loss
     end
 
     properties
@@ -100,35 +84,7 @@ classdef NLP_Formulation < handle
                 error('D gap function parameter should satisfy: b > a > 0')
             end
             if isfield(Option, 'penalty_gap_func_auxiliary_variable')
-                self.penalty_gap_func_auxiliary_variable = Option.penalty_gap_func_auxiliary_variable;
-            end
-            if isfield(Option, 'state_equation_discretization')
-                self.state_equation_discretization = Option.state_equation_discretization;
-            end
-
-            %% specify properties about function object used in NLP reformulation
-            % create discretization state equation
-            self.discre_state_equ_func = self.create_discre_state_equ_func(OCPEC);
-                    
-            switch self.relaxation_problem
-                case 'gap_constraint_based'
-                    % create a strongly convex function d and its derivative used in gap function
-                    [d_func, d_grad, d_hessian] = self.create_strongly_convex_func(OCPEC);
-                    self.d_func = d_func;
-                    self.d_grad = d_grad;
-                    self.d_hessian = d_hessian;
-                    % create a strongly concave maximization problem to evaluate variable omega
-                    % used in gap function
-                    self.OmegaEvalProb = self.create_strongly_concave_max_prob(OCPEC);
-                    % create a penalty function for auxiliary variable
-                    self.penalty_func = self.create_penalty_func();
-                    % create a weighting generalized primal gap function phi_c, 
-                    self.phi_c_func = self.create_weighting_generalized_primal_gap_function(OCPEC);
-                case 'KKT_based'
-                    % create function object for KKT based VI reformulation
-                    [KKT_stationarity_func, KKT_complementarity_func] = self.create_KKT_reformulation(OCPEC);
-                    self.KKT_stationarity_func = KKT_stationarity_func;
-                    self.KKT_complementarity_func = KKT_complementarity_func;
+                self.gap_func_auxiliary_variable_penalty = Option.gap_func_auxiliary_variable_penalty;
             end
 
             %% discretize OCPEC into NLP
@@ -169,7 +125,7 @@ classdef NLP_Formulation < handle
                             disp(['D gap function parameter (a / b): .................... ', ...
                                 num2str(self.D_gap_param_a), ' / ', num2str(self.D_gap_param_b)])
                     end
-                    disp(['penalty gap function auxiliary variable: ............. ', self.penalty_gap_func_auxiliary_variable])
+                    disp(['gap function auxiliary variable penalty: ............. ', self.gap_func_auxiliary_variable_penalty])
                 case 'KKT_based'
                     disp(['relaxation strategy: ................................. ', self.KKT_complementarity_relaxation_strategy])
             end
@@ -184,11 +140,9 @@ classdef NLP_Formulation < handle
     
     %% Other method
     methods
-        discre_state_equ_func = create_discre_state_equ_func(self, OCPEC)
-
-        [d_func, d_grad, d_hessian] = create_strongly_convex_func(self, OCPEC)
+        [d_func, d_grad, d_hessian] = create_strongly_convex_func(self, OCPEC) 
         
-        OmegaEvalProb = create_strongly_concave_max_prob(self, OCPEC)
+        OmegaEvalProb = create_strongly_concave_max_prob(self, OCPEC) % TODO, or change into omega solver with parameter c
 
         penalty_func = create_penalty_func(self)
 
@@ -200,7 +154,7 @@ classdef NLP_Formulation < handle
 
         nlp = create_generalized_D_gap_constraint_based_NLP(self, OCPEC)
 
-        nlp = create_KKT_based_NLP(self, OCPEC)
+        nlp = create_KKT_based_NLP(self, OCPEC) 
         
         FuncObj = create_FuncObj(self, nlp) 
     end

@@ -24,8 +24,8 @@ function nlp = create_generalized_primal_gap_constraint_based_NLP(self, OCPEC)
 %            with s:  nonnegative relax parameter for gap constraints
 %                 mu: nonnegative penalty parameter for penalty function
 %        (3) J: cost function J = J_ocp + J_penalty
-%            J_ocp = sum(J_stage_n) + J_terminal 
-%            J_penalty = sum(J_penalty_n)
+%            J_ocp = sum(J_stage_n)*dt + J_terminal 
+%            J_penalty = mu*sum(J_penalty_n)*dt
 %            with J_stage_n:   stage cost defined in OCPEC
 %                 J_terminal:  terminal cost defined in OCPEC
 %                 J_penalty_n: penalty cost for auxiliary variable w_n
@@ -58,8 +58,8 @@ X = SX.sym('X', OCPEC.Dim.x, OCPEC.nStages);
 XPrev = [OCPEC.x0, X(:, 1 : end - 1)];
 U = SX.sym('U', OCPEC.Dim.u, OCPEC.nStages);
 LAMBDA = SX.sym('LAMBDA', OCPEC.Dim.lambda, OCPEC.nStages);
-ETA = SX.sym('ETA', eta_Dim, OCPEC.nStages); % auxiliary variable for VI function F
-W = SX.sym('W', w_Dim, OCPEC.nStages); % auxiliary variable for generalized primal gap function
+ETA = SX.sym('ETA', eta_Dim, OCPEC.nStages); 
+W = SX.sym('W', w_Dim, OCPEC.nStages); 
 % initialize problem parameter
 s = SX.sym('s', 1, 1);
 mu = SX.sym('mu', 1, 1);
@@ -68,26 +68,26 @@ mu = SX.sym('mu', 1, 1);
 % stage cost
 L_S_map = OCPEC.FuncObj.L_S.map(OCPEC.nStages);
 % penalty cost
-penalty_map = self.penalty_func.map(OCPEC.nStages);
-% discretization state equation
-f_map = self.discre_state_equ_func.map(OCPEC.nStages);
-% VI function F and set K inequality constraint g
+penalty_func = self.create_penalty_func();
+penalty_func_map = penalty_func.map(OCPEC.nStages);
+% DVI
+f_map = OCPEC.FuncObj.f.map(OCPEC.nStages);
 F_map = OCPEC.FuncObj.F.map(OCPEC.nStages);
 g_map = OCPEC.FuncObj.g.map(OCPEC.nStages);
 % path inequality constraints G and equality constraint C defined in OCPEC
 G_map = OCPEC.FuncObj.G.map(OCPEC.nStages);
 C_map = OCPEC.FuncObj.C.map(OCPEC.nStages);
 % phi_c to construct generalized primal gap function phi
-phi_c_map = self.phi_c_func.map(OCPEC.nStages);
+phi_c_func = self.create_weighting_generalized_primal_gap_function(OCPEC);
+phi_c_func_map = phi_c_func.map(OCPEC.nStages);
 
 %% formulate NLP function (stagewise)
 % cost
 L_S_stage = L_S_map(X, U, LAMBDA);
 L_T = OCPEC.FuncObj.L_T(X(:, end));
-penalty_stage = penalty_map(W, mu);
-% discretized state equation
-f_stage = f_map(XPrev, X, U, LAMBDA);
-% VI function and set
+penalty_func_stage = penalty_func_map(W);
+% DVI
+f_stage = f_map(X, U, LAMBDA);
 F_stage = F_map(X, U, LAMBDA);
 g_stage = g_map(LAMBDA);
 % path inequality constraint G and equality constraint C
@@ -96,7 +96,7 @@ C_stage = C_map(X, U);
 % gap function
 primal_gap_param_c = 1;
 if strcmp(OCPEC.VISetType, 'box_constraint') || strcmp(OCPEC.VISetType, 'nonnegative_orthant')
-    phi_stage = phi_c_map(LAMBDA, ETA, primal_gap_param_c);
+    phi_stage = phi_c_func_map(LAMBDA, ETA, primal_gap_param_c);
 elseif strcmp(OCPEC.VISetType, 'finitely_representable') || strcmp(OCPEC.VISetType, 'polyhedral')
     % TODO, phi is a function of lambda, eta, and omega_c
 end
@@ -112,18 +112,25 @@ Dim.z = size(z, 1);
 p = [s; mu];
 
 % cost function
-J_ocp = OCPEC.timeStep*sum(L_S_stage) + L_T;
-J_penalty = OCPEC.timeStep*sum(penalty_stage);
+J_ocp = sum(L_S_stage) * OCPEC.timeStep + L_T;
+J_penalty = mu * sum(penalty_func_stage) * OCPEC.timeStep;
 J = J_ocp + J_penalty;
 
 % equality constraint h = 0
-h_stage = [f_stage; F_stage - ETA; phi_stage - W; C_stage];
+h_stage = [...
+    XPrev - X + f_stage * OCPEC.timeStep;...
+    F_stage - ETA;...
+    phi_stage - W;...
+    C_stage];
 h = reshape(h_stage, (OCPEC.Dim.x + eta_Dim + w_Dim + OCPEC.Dim.C) * OCPEC.nStages, 1);
 Dim.h_Node = cumsum([OCPEC.Dim.x, eta_Dim, w_Dim, OCPEC.Dim.C]);
 Dim.h = size(h, 1);
 
 % inequality constraint c >= 0
-c_stage = [g_stage; s - W; G_stage];
+c_stage = [...
+    g_stage;...
+    s - W;...
+    G_stage];
 c = reshape(c_stage, (OCPEC.Dim.g + w_Dim + OCPEC.Dim.G) * OCPEC.nStages, 1);
 Dim.c_Node = cumsum([OCPEC.Dim.g, w_Dim, OCPEC.Dim.G]);
 Dim.c = size(c, 1);

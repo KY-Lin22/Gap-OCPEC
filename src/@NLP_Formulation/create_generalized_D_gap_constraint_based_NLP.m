@@ -25,8 +25,8 @@ function nlp = create_generalized_D_gap_constraint_based_NLP(self, OCPEC)
 %            with s:  nonnegative relax parameter for gap constraints
 %                 mu: nonnegative penalty parameter for penalty function
 %        (3) J: cost function J = J_ocp + J_penalty
-%            J_ocp = sum(J_stage_n) + J_terminal 
-%            J_penalty = sum(J_penalty_n)
+%            J_ocp = sum(J_stage_n)*dt + J_terminal 
+%            J_penalty = mu*sum(J_penalty_n)*dt
 %            with J_stage_n:   stage cost defined in OCPEC
 %                 J_terminal:  terminal cost defined in OCPEC
 %                 J_penalty_n: penalty cost for auxiliary variable w_n and v_n
@@ -60,9 +60,9 @@ X = SX.sym('X', OCPEC.Dim.x, OCPEC.nStages);
 XPrev = [OCPEC.x0, X(:, 1 : end - 1)];
 U = SX.sym('U', OCPEC.Dim.u, OCPEC.nStages);
 LAMBDA = SX.sym('LAMBDA', OCPEC.Dim.lambda, OCPEC.nStages);
-ETA = SX.sym('ETA', eta_Dim, OCPEC.nStages); % auxiliary variable for VI function F
-W = SX.sym('W', w_Dim, OCPEC.nStages); % auxiliary variable for phi_a in generalized D gap function
-V = SX.sym('V', v_Dim, OCPEC.nStages); % auxiliary variable for phi_b in generalized D gap function
+ETA = SX.sym('ETA', eta_Dim, OCPEC.nStages); 
+W = SX.sym('W', w_Dim, OCPEC.nStages); 
+V = SX.sym('V', v_Dim, OCPEC.nStages);
 % initialize problem parameter
 s = SX.sym('s', 1, 1);
 mu = SX.sym('mu', 1, 1);
@@ -71,27 +71,26 @@ mu = SX.sym('mu', 1, 1);
 % stage cost
 L_S_map = OCPEC.FuncObj.L_S.map(OCPEC.nStages);
 % penalty cost
-penalty_map = self.penalty_func.map(OCPEC.nStages);
-% discretization state equation
-f_map = self.discre_state_equ_func.map(OCPEC.nStages);
-% VI function F and set K inequality constraint g
+penalty_func = self.create_penalty_func();
+penalty_func_map = penalty_func.map(OCPEC.nStages);
+% DVI
+f_map = OCPEC.FuncObj.f.map(OCPEC.nStages);
 F_map = OCPEC.FuncObj.F.map(OCPEC.nStages);
 % path inequality constraints G and equality constraint C defined in OCPEC
 G_map = OCPEC.FuncObj.G.map(OCPEC.nStages);
 C_map = OCPEC.FuncObj.C.map(OCPEC.nStages);
 % phi_c to construct generalized D gap function phi_ab = phi_a - phi_b
-phi_c_map = self.phi_c_func.map(OCPEC.nStages);
+phi_c_func = self.create_weighting_generalized_primal_gap_function(OCPEC);
+phi_c_func_map = phi_c_func.map(OCPEC.nStages);
 
 %% formulate NLP function (stagewise)
 % cost
 L_S_stage = L_S_map(X, U, LAMBDA);
 L_T = OCPEC.FuncObj.L_T(X(:, end));
-penalty_w_stage = penalty_map(W, mu);
-penalty_v_stage = penalty_map(V, mu);
-penalty_wv_stage = penalty_map(W-V, mu);
-% discretized state equation
-f_stage = f_map(XPrev, X, U, LAMBDA);
-% VI function and set
+penalty_func_w_stage = penalty_func_map(W);
+penalty_func_v_stage = penalty_func_map(V);
+% DVI
+f_stage = f_map(X, U, LAMBDA);
 F_stage = F_map(X, U, LAMBDA);
 % path inequality constraint G and equality constraint C
 G_stage = G_map(X, U);
@@ -100,8 +99,8 @@ C_stage = C_map(X, U);
 D_gap_param_a = self.D_gap_param_a;
 D_gap_param_b = self.D_gap_param_b;
 if strcmp(OCPEC.VISetType, 'box_constraint') || strcmp(OCPEC.VISetType, 'nonnegative_orthant')
-    phi_a_stage = phi_c_map(LAMBDA, ETA, D_gap_param_a);
-    phi_b_stage = phi_c_map(LAMBDA, ETA, D_gap_param_b);
+    phi_a_stage = phi_c_func_map(LAMBDA, ETA, D_gap_param_a);
+    phi_b_stage = phi_c_func_map(LAMBDA, ETA, D_gap_param_b);
 elseif strcmp(OCPEC.VISetType, 'finitely_representable') || strcmp(OCPEC.VISetType, 'polyhedral')
     % TODO, phi_a is a function of lambda, eta, and omega_a
     % TODO, phi_b is a function of lambda, eta, and omega_b
@@ -118,18 +117,25 @@ Dim.z = size(z, 1);
 p = [s; mu];
 
 % cost function
-J_ocp = OCPEC.timeStep*sum(L_S_stage) + L_T;
-J_penalty = OCPEC.timeStep*sum(penalty_w_stage + penalty_v_stage + penalty_wv_stage);
+J_ocp = sum(L_S_stage) * OCPEC.timeStep + L_T;
+J_penalty = mu * sum(penalty_func_w_stage + penalty_func_v_stage) * OCPEC.timeStep;
 J = J_ocp + J_penalty;
 
 % equality constraint h = 0
-h_stage = [f_stage; F_stage - ETA; phi_a_stage - W; phi_b_stage - V; C_stage];
+h_stage = [...
+    XPrev - X + f_stage * OCPEC.timeStep;...
+    F_stage - ETA;...
+    phi_a_stage - W;...
+    phi_b_stage - V;...
+    C_stage];
 h = reshape(h_stage, (OCPEC.Dim.x + eta_Dim + w_Dim + v_Dim + OCPEC.Dim.C) * OCPEC.nStages, 1);
 Dim.h_Node = cumsum([OCPEC.Dim.x, eta_Dim, w_Dim, v_Dim, OCPEC.Dim.C]);
 Dim.h = size(h, 1);
 
 % inequality constraint c >= 0
-c_stage = [s - W + V; G_stage];
+c_stage = [...
+    s - W + V;...
+    G_stage];
 c = reshape(c_stage, (w_Dim + OCPEC.Dim.G) * OCPEC.nStages, 1);
 Dim.c_Node = cumsum([w_Dim, OCPEC.Dim.G]);
 Dim.c = size(c, 1);

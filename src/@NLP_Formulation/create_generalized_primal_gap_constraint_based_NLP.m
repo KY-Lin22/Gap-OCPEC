@@ -110,6 +110,7 @@ Dim.z = size(z, 1);
 
 % problem parameter
 p = [s; mu];
+Dim.p = size(p, 1);
 
 % cost function
 J_ocp = sum(L_S_stage) * OCPEC.timeStep + L_T;

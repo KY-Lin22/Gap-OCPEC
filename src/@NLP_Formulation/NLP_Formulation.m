@@ -132,6 +132,7 @@ classdef NLP_Formulation < handle
             disp(['discretization state equation: ....................... ', self.state_equation_discretization])
             disp('2. Problem Size')
             disp(['number of decision variable (z): ..................... ', num2str(self.Dim.z)])
+            disp(['number of parameter (p): ............................. ', num2str(self.Dim.p)])
             disp(['number of equality constraint (h): ................... ', num2str(self.Dim.h)])
             disp(['number of inequality constraint (c): ................. ', num2str(self.Dim.c)])
             

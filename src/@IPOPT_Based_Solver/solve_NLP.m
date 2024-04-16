@@ -20,15 +20,17 @@ function [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
 
 import casadi.*
 
-%% check option and input
-% check option (TODO)
-
-NLP = self.NLP;
-Option = self.Option;
-
+%% check input
 % check input z_Init
-if ~all(size(z_Init) == [NLP.Dim.z, 1])
+if ~all(size(z_Init) == [self.NLP.Dim.z, 1])
     error('z_Init has wrong dimension')
+end
+% check parameter size
+if ~all(size(p_Init) == [self.NLP.Dim.p, 1])
+    error('p_Init has wrong dimension')
+end
+if ~all(size(p_End) == [self.NLP.Dim.p, 1])
+    error('p_End has wrong dimension')
 end
 % check relaxation parameter
 if (p_Init(1) < 0) || (p_End(1) < 0)
@@ -46,9 +48,9 @@ if p_Init(2) > p_End(2)
 end
 
 % load parameter
-kappa_s_times = Option.Homotopy.kappa_s_times;
-kappa_s_exp = Option.Homotopy.kappa_s_exp;
-VI_nat_res_tol = Option.Homotopy.VI_nat_res_tol;
+kappa_s_times = self.Option.Homotopy.kappa_s_times;
+kappa_s_exp = self.Option.Homotopy.kappa_s_exp;
+VI_nat_res_tol = self.Option.Homotopy.VI_nat_res_tol;
 
 %% create record for time and log 
 % evaluate the max number of continuation step based on given s_Init, s_End 
@@ -86,13 +88,13 @@ while true
     %% step 1: solve a NLP with given p
     % solve problem
     solution_j = self.Solver('x0', z_Init_j, 'p', p_j,...
-        'lbg', [zeros(NLP.Dim.h, 1); zeros(NLP.Dim.c, 1)],...
-        'ubg', [zeros(NLP.Dim.h, 1); inf*ones(NLP.Dim.c, 1)]);
+        'lbg', [zeros(self.NLP.Dim.h, 1); zeros(self.NLP.Dim.c, 1)],...
+        'ubg', [zeros(self.NLP.Dim.h, 1); inf*ones(self.NLP.Dim.c, 1)]);
     % extract solution and information
     z_Opt_j = full(solution_j.x);
     dual_var_Opt_j = full(solution_j.lam_g);
-    J_ocp_j = full(NLP.FuncObj.J_ocp(z_Opt_j, p_j));
-    J_penalty_j = full(NLP.FuncObj.J_penalty(z_Opt_j, p_j));
+    J_ocp_j = full(self.NLP.FuncObj.J_ocp(z_Opt_j, p_j));
+    J_penalty_j = full(self.NLP.FuncObj.J_penalty(z_Opt_j, p_j));
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
     KKT_error_dual_j = self.Solver.stats.iterations.inf_du(end); 
     VI_nat_res_j = self.evaluate_natural_residual(z_Opt_j);
@@ -142,7 +144,7 @@ while true
     elseif j == continuationStepMaxNum
         % IPOPT still can not find the optimal solution in the final homotopy iteration
         exitFlag = true;
-        terminalStatus = 0;
+        terminalStatus = -1;
         terminalMsg = 'IPOPT can not find the optimal solution satisfying the desired VI natural residual';
     else
         % IPOPT at this homotopy iteration (not the final) finds the optimal solution, prepare for next homotopy iteration

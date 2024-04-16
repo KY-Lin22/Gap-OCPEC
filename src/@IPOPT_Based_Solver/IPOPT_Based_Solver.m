@@ -23,16 +23,13 @@ classdef IPOPT_Based_Solver < handle
             disp('creating solver...')
             % properties: OCPEC and NLP
             self.OCPEC = OCPEC;
-            self.NLP = NLP;  
-            
+            self.NLP = NLP;           
             % properties: solver option
-            self.Option = self.create_Option();
-            
+            self.Option = self.create_Option();         
             % properties: solver
-            Prob = struct('x', NLP.z, 'f', NLP.J, 'g', [NLP.h; NLP.c], 'p', NLP.p);
-            
-            NLP_Solver_Option = self.Option.NLP_Solver;
-            self.Solver = nlpsol('Solver', 'ipopt', Prob, NLP_Solver_Option);
+            Prob = struct('x', NLP.z, 'f', NLP.J, 'g', [NLP.h; NLP.c], 'p', NLP.p);           
+            Option = self.Option.NLP_Solver;
+            self.Solver = nlpsol('Solver', 'ipopt', Prob, Option);
 
             disp('Done!')
         end
@@ -51,10 +48,7 @@ classdef IPOPT_Based_Solver < handle
         [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
 
         % evaluate natural residual
-        natRes = evaluate_natural_residual(self, z_Opt)
-
-        % show result (TO DO)
-        show_result(self, Info)        
+        natRes = evaluate_natural_residual(self, z_Opt)  
     end
     
 end

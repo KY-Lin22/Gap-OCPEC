@@ -4,15 +4,14 @@ function OCPEC = OCPEC_CartPoleWithFriction()
 import casadi.*
 %%
 % time parameter
-TimeHorizon = 3; % time horizon T
+timeHorizon = 3; % time horizon T
 nStages = 300; % number of discretized stages
-timeStep = TimeHorizon ./ nStages; % discretization time step
+timeStep = timeHorizon ./ nStages; % discretization time step
 
-% initial and reference state
-x0 = [1; 0/180*pi; 0; 0]; % initial state
-xRef = [1; 180/180*pi; 0; 0]; % ref state
+% initial state
+x0 = [1; 0/180*pi; 0; 0]; 
 
-% variable and their bounds
+% variable
 xDim = 4;
 uDim = 1;
 lambdaDim = 1;
@@ -20,14 +19,8 @@ x = SX.sym('x', xDim, 1);
 u = SX.sym('u', uDim, 1);
 lambda = SX.sym('lambda', lambdaDim, 1);
 
-xMax = [5; 240/180*pi; 20; 20];
-xMin = [0; -240/180*pi; -20; -20];
-uMax = 30;
-uMin = -30;
-lambdaMax = 2;
-lambdaMin = -2;
-
 % cost function
+xRef = [1; 180/180*pi; 0; 0]; % ref state
 xWeight_S = [1; 100; 1; 1];
 uWeight_S = 1;
 lambdaWeight_S = 1;
@@ -54,13 +47,23 @@ LAMBDA = [lambda(1);...
      0]; % friction bewteen cart and ground  
 H = G_Mat + Bu + LAMBDA - C_Mat * [x(3); x(4)];
 
+lambdaMax = 2;
+lambdaMin = -2;
+
 f = [x(3:4);...
     inv(M)*H];% xDot = f(x, u, lambda)
 g = [lambda - lambdaMin;...
     lambdaMax - lambda]; % VI set g >= 0
 F = x(3);
 VISetType = 'box_constraint'; 
+bl = lambdaMin;
+bu = lambdaMax;
+
 % inequality constraint G >= 0
+xMax = [5; 240/180*pi; 20; 20];
+xMin = [0; -240/180*pi; -20; -20];
+uMax = 30;
+uMin = -30;
 G = [xMax - x;...
     x - xMin;...
     uMax - u;...
@@ -70,12 +73,11 @@ C = SX(0,1);
 
 %% create OCPEC instant
 OCPEC = OCPEC_Formulation(...
-    TimeHorizon, nStages, timeStep,...
-    x0, xRef,...
+    timeHorizon, nStages, timeStep,...
+    x0, ...
     x, u, lambda,...
-    xMax, xMin, uMax, uMin, lambdaMax, lambdaMin,...
     L_T, L_S,...
-    f, g, F, VISetType,...
+    f, g, F, VISetType, bl, bu,...
     G, C);
 end
 

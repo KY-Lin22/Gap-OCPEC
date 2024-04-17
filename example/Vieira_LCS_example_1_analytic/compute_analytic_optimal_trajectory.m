@@ -17,8 +17,8 @@ else
 end
 
 % compute p_0 based on gamma and x_0
-p_0 = - (OCPEC.x0 * (exp(2*sqrt(gamma)*OCPEC.TimeHorizon) - 1)) / ...
-    ( (sqrt(gamma) - param.a) * exp(2*sqrt(gamma) * OCPEC.TimeHorizon) + sqrt(gamma) + param.a);
+p_0 = - (OCPEC.x0 * (exp(2*sqrt(gamma)*OCPEC.timeHorizon) - 1)) / ...
+    ( (sqrt(gamma) - param.a) * exp(2*sqrt(gamma) * OCPEC.timeHorizon) + sqrt(gamma) + param.a);
 
 % symbolic time variable t
 t = SX.sym('t', 1, 1);

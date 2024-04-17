@@ -13,7 +13,7 @@ Option.strongly_convex_func = 'quadratic';
 Option.gap_func_smooth_param = 0.001;
 Option.D_gap_param_a = 0.8;
 Option.D_gap_param_b = 1.2;
-Option.penalty_gap_func_auxiliary_variable = 'L2'; % 'none', 'L1', 'L2'
+Option.gap_func_auxiliary_variable_penalty = 'L2'; % 'none', 'L1', 'L2'
 NLP = NLP_Formulation(OCPEC, Option);
 
 % create solver
@@ -26,7 +26,7 @@ z_Init = zeros(NLP.Dim.z, 1);
 %% parameter and problem solve
 % parameter
 s_Init = 1e-1;
-s_End = 1e-3; 
+s_End = 1e-5; 
 mu_Init = 1e0;
 mu_End = 1e4;
 p_Init = [s_Init; mu_Init];

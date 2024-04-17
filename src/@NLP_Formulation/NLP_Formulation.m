@@ -129,7 +129,6 @@ classdef NLP_Formulation < handle
                 case 'KKT_based'
                     disp(['relaxation strategy: ................................. ', self.KKT_complementarity_relaxation_strategy])
             end
-            disp(['discretization state equation: ....................... ', self.state_equation_discretization])
             disp('2. Problem Size')
             disp(['number of decision variable (z): ..................... ', num2str(self.Dim.z)])
             disp(['number of parameter (p): ............................. ', num2str(self.Dim.p)])

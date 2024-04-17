@@ -83,7 +83,7 @@ classdef NLP_Formulation < handle
             if self.D_gap_param_b <= self.D_gap_param_a
                 error('D gap function parameter should satisfy: b > a > 0')
             end
-            if isfield(Option, 'penalty_gap_func_auxiliary_variable')
+            if isfield(Option, 'gap_func_auxiliary_variable_penalty')
                 self.gap_func_auxiliary_variable_penalty = Option.gap_func_auxiliary_variable_penalty;
             end
 

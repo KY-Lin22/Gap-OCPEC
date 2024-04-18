@@ -26,10 +26,15 @@ switch OCPEC.VISetType
             case 'quadratic'
                 stationary_point_c = lambda - (1/c) * eta;           
         end
-        % smoothing omega = mid(bl, bu, stationary_point) by CHKS function 
-        % ref: example 2 in ''A new look at smoothing Newton methods for NCPs and BVI'', Mathematical Programming, 2000
-        omega_c = 0.5*(OCPEC.bl + sqrt((OCPEC.bl - stationary_point_c).^2 + 4*epsilon^2)) ...
-            + 0.5*(OCPEC.bu - sqrt((OCPEC.bu - stationary_point_c).^2 + 4*epsilon^2));
+        % smoothing omega' expression: omega = mid(bl, bu, stationary_point)
+        if epsilon == 0
+            % do not smoothing 
+            omega_c = max(OCPEC.bl, min(stationary_point_c, OCPEC.bu));
+        else
+            % smoothing by CHKS function: refer to example 2 in ''A new look at smoothing Newton methods for NCPs and BVI'', Mathematical Programming, 2000
+            omega_c = 0.5*(OCPEC.bl + sqrt((OCPEC.bl - stationary_point_c).^2 + 4*epsilon^2)) ...
+                + 0.5*(OCPEC.bu - sqrt((OCPEC.bu - stationary_point_c).^2 + 4*epsilon^2));
+        end
         p_c = d_func(lambda) - d_func(omega_c) + d_grad(lambda) * (omega_c - lambda);
         phi_c = eta' * (lambda - omega_c) + c * p_c;
         phi_c_func = Function('phi_c_func', {lambda, eta, c}, {phi_c}, {'lambda', 'eta', 'c'}, {'phi_c'});
@@ -40,8 +45,14 @@ switch OCPEC.VISetType
             case 'quadratic'
                 stationary_point_c = lambda - (1/c) * eta;
         end
-        % smoothing omega = max(0, stationary_point) by CHKS function
-        omega_c = 0.5*(sqrt(stationary_point_c.^2 + 4 * epsilon^2) + stationary_point_c);
+        % smoothing omega's expression: omega = max(0, stationary_point)
+        if epsilon == 0
+            % do not smoothing
+            omega_c = max(zeros(OCPEC.Dim.lambda, 1), stationary_point_c);
+        else
+            % smoothing  by CHKS function
+            omega_c = 0.5*(sqrt(stationary_point_c.^2 + 4 * epsilon^2) + stationary_point_c);
+        end
         p_c = d_func(lambda) - d_func(omega_c) + d_grad(lambda) * (omega_c - lambda);
         phi_c = eta' * (lambda - omega_c) + c * p_c;
         phi_c_func = Function('phi_c_func', {lambda, eta, c}, {phi_c}, {'lambda', 'eta', 'c'}, {'phi_c'});

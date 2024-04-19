@@ -1,5 +1,6 @@
-function nlp = create_generalized_D_gap_constraint_based_NLP(self, OCPEC)
-% formulate a relax generalized D gap constraint based NLP
+function nlp = create_D_gap_NLP_w_v(self, OCPEC)
+% formulate a relax generalized D gap constraint based NLP using auxiliary
+% variable w and v for D gap function
 %
 % OCPEC has the form:
 %  min  L_T(x) + int_0^T L_S(x, u, lambda) dt,

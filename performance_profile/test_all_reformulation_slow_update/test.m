@@ -4,7 +4,7 @@ clear all
 clc
 
 % run test (it needs about 30 - 40 min)
-% [Rec, NLP_reformulation_name] = run_test_all_reformulation_slow_update();
+[Rec, NLP_reformulation_name] = run_test_all_reformulation_slow_update();
 
 save('Data_performance_test.mat', 'Rec', 'NLP_reformulation_name')
 

@@ -32,14 +32,18 @@ classdef NLP_Formulation < handle
         strongly_convex_func char {mustBeMember(strongly_convex_func, {...
             'quadratic',...
             })} = 'quadratic'  % strongly convex function in Auchmuty's saddle function       
-        gap_func_smooth_param double {mustBeNonnegative} = 0.001 % used in CHKS smoothing function for max(0, x) and mid(bl, bu, x)
-        D_gap_param_a double {mustBeNonnegative} = 0.8; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
-        D_gap_param_b double {mustBeNonnegative} = 1.2; % Ref: Theoretical and numerical investigation of the D-gap function   
-                                                        % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima                  
+        gap_func_smooth_param double {mustBeNonnegative} = 1e-4 % used in CHKS smoothing function for max(0, x) and mid(bl, bu, x)
+        D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
+        D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
+                                                        % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima  
+        auxiliary_variable_strategy char {mustBeMember(auxiliary_variable_strategy, {...
+            'none',...
+            'primal_gap_func',...% auxi var w for primal gap function (thus D gap needs two auxi vars)
+            'omega'... % auxi var omega for omega expression (TODO, need a new equality constraint)
+            })} = 'none'
         gap_func_auxiliary_variable_penalty char {mustBeMember(gap_func_auxiliary_variable_penalty, {...
             'none',...
-            'L1',...
-            'L2'})} = 'L2' % To Do: barrier function and Huber loss
+            'L2'})} = 'L2' % To Do: L1(need a new inequality constraint), barrier function and Huber loss
     end
 
     properties
@@ -83,6 +87,9 @@ classdef NLP_Formulation < handle
             if self.D_gap_param_b <= self.D_gap_param_a
                 error('D gap function parameter should satisfy: b > a > 0')
             end
+            if isfield(Option, 'auxiliary_variable_strategy')
+                self.auxiliary_variable_strategy = Option.auxiliary_variable_strategy;
+            end            
             if isfield(Option, 'gap_func_auxiliary_variable_penalty')
                 self.gap_func_auxiliary_variable_penalty = Option.gap_func_auxiliary_variable_penalty;
             end
@@ -90,12 +97,7 @@ classdef NLP_Formulation < handle
             %% discretize OCPEC into NLP
             switch self.relaxation_problem
                 case 'gap_constraint_based'
-                    switch self.gap_constraint_relaxation_strategy
-                        case 'generalized_primal_gap'
-                            nlp = self.create_generalized_primal_gap_constraint_based_NLP(OCPEC);
-                        case 'generalized_D_gap'
-                            nlp = self.create_generalized_D_gap_constraint_based_NLP(OCPEC);
-                    end
+                    nlp = self.create_gap_constraint_based_NLP(OCPEC);
                 case 'KKT_based'
                     nlp = self.create_KKT_based_NLP(OCPEC);
             end
@@ -125,6 +127,7 @@ classdef NLP_Formulation < handle
                             disp(['D gap function parameter (a / b): .................... ', ...
                                 num2str(self.D_gap_param_a), ' / ', num2str(self.D_gap_param_b)])
                     end
+                    disp(['auxiliary variable strategy: ......................... ', self.auxiliary_variable_strategy])
                     disp(['gap function auxiliary variable penalty: ............. ', self.gap_func_auxiliary_variable_penalty])
                 case 'KKT_based'
                     disp(['relaxation strategy: ................................. ', self.KKT_complementarity_relaxation_strategy])
@@ -140,6 +143,17 @@ classdef NLP_Formulation < handle
     
     %% Other method
     methods
+        % create gap constraint based NLP
+        nlp = create_gap_constraint_based_NLP(self, OCPEC)
+
+        nlp = create_primal_gap_NLP(self, OCPEC)
+
+        nlp = create_primal_gap_NLP_w(self, OCPEC)
+
+        nlp = create_D_gap_NLP(self, OCPEC)
+
+        nlp = create_D_gap_NLP_w_v(self, OCPEC)
+
         [d_func, d_grad, d_hessian] = create_strongly_convex_func(self, OCPEC) 
         
         OmegaEvalProb = create_strongly_concave_max_prob(self, OCPEC) % TODO, or change into omega solver with parameter c
@@ -148,14 +162,12 @@ classdef NLP_Formulation < handle
 
         phi_c_func = create_weighting_generalized_primal_gap_function(self, OCPEC)
 
-        [KKT_stationarity_func, KKT_complementarity_func] = create_KKT_reformulation(self, OCPEC)
-
-        nlp = create_generalized_primal_gap_constraint_based_NLP(self, OCPEC)
-
-        nlp = create_generalized_D_gap_constraint_based_NLP(self, OCPEC)
-
+        % create KT based NLP
         nlp = create_KKT_based_NLP(self, OCPEC) 
+
+        [KKT_stationarity_func, KKT_complementarity_func] = create_KKT_reformulation(self, OCPEC)
         
+        % create NLP function object
         FuncObj = create_FuncObj(self, nlp) 
     end
     

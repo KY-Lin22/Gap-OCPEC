@@ -25,9 +25,7 @@ switch NLP.relaxation_problem
         end
     case 'KKT_based'
         ZETA_Init = zeros(OCPEC.Dim.g, OCPEC.nStages);
-        g_FuncObj_map = OCPEC.FuncObj.g.map(OCPEC.nStages);
-        W_Init = full(g_FuncObj_map(LAMBDA_Init));
-        z_Init = reshape([X_Init; U_Init; LAMBDA_Init; ZETA_Init; W_Init], [], 1);
+        z_Init = reshape([X_Init; U_Init; LAMBDA_Init; ZETA_Init], [], 1);
 end
 
 end

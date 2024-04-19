@@ -14,12 +14,11 @@ function nlp = create_KKT_based_NLP(self, OCPEC)
 %  s.t. h(z, p) = 0,
 %       c(z, p) >= 0
 % where: (1) z: collects all the variables to be optimized and arranged in a stagewise manner
-%            z = [z_1;...z_n;...z_N] and z_n = [x_n; u_n; lambda_n; zeta_n, w_n] 
+%            z = [z_1;...z_n;...z_N] and z_n = [x_n; u_n; lambda_n; zeta_n] 
 %            with x_n:      system state
 %                 u_n:      control                 
 %                 lambda_n: algebraic variable   
 %                 zeta_n:   dual variable for inequality g formulating VI set K   
-%                 w_n:      auxiliary variable to transfer inequality g into equality
 %        (2) p: collects all the NLP problem parameters p = [s, mu]
 %            with s:  nonnegative relax parameter for gap constraints
 %                 mu: nonnegative penalty parameter for penalty function
@@ -28,12 +27,11 @@ function nlp = create_KKT_based_NLP(self, OCPEC)
 %            J_penalty = mu*sum(J_penalty_n)*dt
 %            with J_stage_n:   stage cost defined in OCPEC
 %                 J_terminal:  terminal cost defined in OCPEC
-%                 J_penalty_n: penalty cost (KKT based NLP sets penalty term as zero)
+%                 J_penalty_n: penalty cost (here set penalty term as zero)
 %        (4) h: equality constraint arranged in a stagewise manner
-%            h = [h_1;...h_n;...h_N] and h_n = [f_n; KKT_stationarity_n; g_n - w_n; C_n]     
+%            h = [h_1;...h_n;...h_N] and h_n = [f_n; KKT_stationarity_n; C_n]     
 %            with f_n:                discretized state equation f defined in OCPEC
 %                 KKT_stationarity_n: KKT stationarity condition for VI reformulation
-%                 g_n:                inequality constraints g formulating VI set K
 %                 C_n:                path equality constraints C defined in OCPEC 
 %        (5) c: inequality constraint arranged in a stagewise manner
 %            c = [c_1;...c_n;...c_N] and c_n = [KKT_complementarity_n; G_n] 
@@ -49,16 +47,14 @@ function nlp = create_KKT_based_NLP(self, OCPEC)
 import casadi.*
 
 %% initialize NLP variable (stagewise, capital)
-% define dual and auxiliary variable dimension
+% define dual variable dimension
 zeta_Dim = OCPEC.Dim.g;
-w_Dim = OCPEC.Dim.g;
 % initialize problem variable 
 X = SX.sym('X', OCPEC.Dim.x, OCPEC.nStages); 
 XPrev = [OCPEC.x0, X(:, 1 : end - 1)];
 U = SX.sym('U', OCPEC.Dim.u, OCPEC.nStages);
 LAMBDA = SX.sym('LAMBDA', OCPEC.Dim.lambda, OCPEC.nStages);
 ZETA = SX.sym('ETA', zeta_Dim, OCPEC.nStages); 
-W = SX.sym('W', w_Dim, OCPEC.nStages); 
 % initialize problem parameter
 s = SX.sym('s', 1, 1);
 mu = SX.sym('mu', 1, 1);
@@ -68,7 +64,6 @@ mu = SX.sym('mu', 1, 1);
 L_S_map = OCPEC.FuncObj.L_S.map(OCPEC.nStages);
 % DVI
 f_map = OCPEC.FuncObj.f.map(OCPEC.nStages);
-g_map = OCPEC.FuncObj.g.map(OCPEC.nStages);
 % path inequality constraints G and equality constraint C defined in OCPEC
 G_map = OCPEC.FuncObj.G.map(OCPEC.nStages);
 C_map = OCPEC.FuncObj.C.map(OCPEC.nStages);
@@ -84,19 +79,18 @@ L_T = OCPEC.FuncObj.L_T(X(:, end));
 penalty_stage = 0;
 % DVI
 f_stage = f_map(X, U, LAMBDA);
-g_stage = g_map(LAMBDA);
 % path inequality constraint G and equality constraint C
 G_stage = G_map(X, U);
 C_stage = C_map(X, U);
 % KKT reformulation for VI
-KKT_stationarity_func_stage = KKT_stationarity_func_map(X, U, LAMBDA,ZETA);
-KKT_complementarity_func_stage = KKT_complementarity_func_map(ZETA, W, s);
+KKT_stationarity_func_stage = KKT_stationarity_func_map(X, U, LAMBDA, ZETA);
+KKT_complementarity_func_stage = KKT_complementarity_func_map(LAMBDA, ZETA, s);
 
 %% reshape NLP variable and function (column, lowercase)
 % variable
-Z = [X; U; LAMBDA; ZETA; W];
-z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + zeta_Dim + w_Dim) * OCPEC.nStages, 1);
-Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, zeta_Dim, w_Dim]); 
+Z = [X; U; LAMBDA; ZETA];
+z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + zeta_Dim) * OCPEC.nStages, 1);
+Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, zeta_Dim]); 
 Dim.z = size(z, 1);
 
 % problem parameter
@@ -112,10 +106,9 @@ J = J_ocp + J_penalty;
 h_stage = [...
     XPrev - X + f_stage * OCPEC.timeStep;...
     KKT_stationarity_func_stage;...
-    g_stage - W;...
     C_stage];
-h = reshape(h_stage, (OCPEC.Dim.x + OCPEC.Dim.lambda + OCPEC.Dim.g + OCPEC.Dim.C) * OCPEC.nStages, 1);
-Dim.h_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.lambda, OCPEC.Dim.g, OCPEC.Dim.C]);
+h = reshape(h_stage, (OCPEC.Dim.x + OCPEC.Dim.lambda + OCPEC.Dim.C) * OCPEC.nStages, 1);
+Dim.h_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.lambda, OCPEC.Dim.C]);
 Dim.h = size(h, 1);
 
 % inequality constraint c >= 0

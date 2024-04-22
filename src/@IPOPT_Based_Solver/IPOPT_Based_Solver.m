@@ -40,9 +40,6 @@ classdef IPOPT_Based_Solver < handle
     methods
         % create solver option
         Option = create_Option(self)   
-
-        % create initial guess
-        z_Init = create_initial_guess(self)
         
         % solve a sequence of NLP in a homotopy manner from p_Init to p_End 
         [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)

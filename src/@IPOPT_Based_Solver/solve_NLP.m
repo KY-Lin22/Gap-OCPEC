@@ -69,15 +69,9 @@ while true
     end
 end
 
-% log (time, param, cost, KKT error, stepSize, natRes)
-Log.param               = zeros(continuationStepMaxNum, 2); % [s, mu] 
-Log.cost                = zeros(continuationStepMaxNum, 2); % [ocp, penalty]
-Log.KKT_error           = zeros(continuationStepMaxNum, 2); % [primal, dual_scaled]
-Log.stepSize_primal     = zeros(continuationStepMaxNum, 2); % [min, average]
-Log.stepSize_dual       = zeros(continuationStepMaxNum, 2); % [min, average]
-Log.VI_natural_residual = zeros(continuationStepMaxNum, 1);
-Log.iterNum             = zeros(continuationStepMaxNum, 1);
-Log.timeElapsed         = zeros(continuationStepMaxNum, 1); % elapsed time in each continuation step
+% log: elapsed time and iterNum in each continuation step
+Log.iterNum     = zeros(continuationStepMaxNum, 1);
+Log.timeElapsed = zeros(continuationStepMaxNum, 1); 
 
 %% continuation loop (j: continuation step counter)
 z_Init_j = z_Init;
@@ -93,36 +87,29 @@ while true
     % extract solution and information
     z_Opt_j = full(solution_j.x);
     dual_var_Opt_j = full(solution_j.lam_g);
-    J_ocp_j = full(self.NLP.FuncObj.J_ocp(z_Opt_j, p_j));
-    J_penalty_j = full(self.NLP.FuncObj.J_penalty(z_Opt_j, p_j));
+    J_j = full(solution_j.f);
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
     KKT_error_dual_j = self.Solver.stats.iterations.inf_du(end); 
     VI_nat_res_j = self.evaluate_natural_residual(z_Opt_j);
 
     %% step 2: record and print information of the current continuation iterate
-    Log.param(j, :) = [p_j(1), p_j(2)];
-    Log.cost(j, :) = [J_ocp_j, J_penalty_j];
-    Log.KKT_error(j, :) = [KKT_error_primal_j, KKT_error_dual_j];
-    Log.stepSize_primal(j, :) = [min(self.Solver.stats.iterations.alpha_pr(2:end)),...
-        sum(self.Solver.stats.iterations.alpha_pr(2:end))/(self.Solver.stats.iter_count)];
-    Log.stepSize_dual(j, :) = [min(self.Solver.stats.iterations.alpha_du(2:end)),...
-        sum(self.Solver.stats.iterations.alpha_du(2:end))/(self.Solver.stats.iter_count)];
-    Log.VI_natural_residual(j) = VI_nat_res_j;
     Log.iterNum(j) = self.Solver.stats.iter_count;
     Log.timeElapsed(j) = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
     if mod(j, 10) == 1
         disp('---------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = ' step  |   param(s/mu)   | cost(ocp/penalty) | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
+        headMsg = ' step  |   param(s/mu)   | cost | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
         disp(headMsg)
     end
     prevIterMsg = [' ',...
         num2str(j,'%10.2d'), '/', num2str(continuationStepMaxNum,'%10.2d'),' | ',...
-        num2str(Log.param(j, 1), '%10.1e'), ' ', num2str(Log.param(j, 2), '%10.1e'), ' | ',...
-        num2str(Log.cost(j, 1), '%10.2e'), ' ', num2str(Log.cost(j, 2), '%10.2e'),' | ',...
-        num2str(Log.KKT_error(j, 1), '%10.1e'), ' ', num2str(Log.KKT_error(j, 2), '%10.1e'),' | ',...
-        num2str(Log.stepSize_primal(j, 1), '%10.1e'), ' ', num2str(Log.stepSize_primal(j, 2), '%10.1e'), ' | ',...
-        num2str(Log.stepSize_dual(j, 1), '%10.1e'), ' ' , num2str(Log.stepSize_dual(j, 2), '%10.1e'),' | ',...
-        num2str(Log.VI_natural_residual(j), '%10.1e'),' |   ',...
+        num2str(p_j(1), '%10.1e'), ' ', num2str(p_j(2), '%10.1e'), ' | ',...
+        num2str(J_j, '%10.2e'), ' | ',...
+        num2str(KKT_error_primal_j, '%10.1e'), ' ', num2str(KKT_error_dual_j, '%10.1e'),' | ',...
+        num2str(min(self.Solver.stats.iterations.alpha_pr(2:end)), '%10.1e'), ' ',...
+        num2str(sum(self.Solver.stats.iterations.alpha_pr(2:end))/(self.Solver.stats.iter_count), '%10.1e'), ' | ',...
+        num2str(min(self.Solver.stats.iterations.alpha_du(2:end)), '%10.1e'), ' ' ,...
+        num2str(sum(self.Solver.stats.iterations.alpha_du(2:end))/(self.Solver.stats.iter_count), '%10.1e'),' | ',...
+        num2str(VI_nat_res_j, '%10.1e'),' |   ',...
         num2str(Log.iterNum(j), '%10.4d'),'  | ',...
         num2str(Log.timeElapsed(j), '%10.4f')];
     disp(prevIterMsg)
@@ -175,21 +162,12 @@ while true
         Info.terminalStatus = terminalStatus; 
         Info.terminalMsg = terminalMsg; 
         Info.dual_var = dual_var_Opt_j;
-        Info.cost.ocp = J_ocp_j;
-        Info.cost.penalty = J_penalty_j;
+        Info.cost = J_j;
         Info.KKT_error.primal = KKT_error_primal_j;
         Info.KKT_error.dual = KKT_error_dual_j;
         Info.VI_natural_residual = VI_nat_res_j;
         Info.time = sum(Log.timeElapsed);
         Info.iterNum = sum(Log.iterNum);
-        Info.Log.param = Log.param(1 : j, :);
-        Info.Log.cost = Log.cost(1 : j, :);
-        Info.Log.KKT_error = Log.KKT_error(1 : j, :);
-        Info.Log.stepSize_primal = Log.stepSize_primal(1 : j, :);
-        Info.Log.stepSize_dual = Log.stepSize_dual(1 : j, :);
-        Info.Log.VI_natural_residual = Log.VI_natural_residual(1 : j, :);
-        Info.Log.iterNum = Log.iterNum(1 : j, :);
-        Info.Log.timeElapsed = Log.timeElapsed(1 : j, :);
         % display homotopy terminal result and then break        
         disp('*--------------------------------------------- Solution Information ----------------------------------------------*')
         disp(['1. Terminal Message: ', Info.terminalMsg]) 
@@ -200,8 +178,7 @@ while true
         disp(['- Iterations: .................................. ', num2str(Info.iterNum)])
         disp(['- Time Per Iteration: .......................... ', num2str(1000 * Info.time / Info.iterNum,'%10.2f'), ' ms/Iter'])
         disp('3. Solution Message')
-        disp(['- Cost(ocp): ................................... ', num2str(Info.cost.ocp,'%10.3e'), '; '])
-        disp(['- Cost(penalty): ............................... ', num2str(Info.cost.penalty,'%10.3e'), '; '])
+        disp(['- Cost: ........................................ ', num2str(Info.cost,'%10.3e'), '; '])
         disp(['- KKT(primal): ................................. ', num2str(Info.KKT_error.primal,'%10.3e'), '; '])
         disp(['- KKT(dual): ................................... ', num2str(Info.KKT_error.dual,'%10.3e')  '; '])
         disp(['- equilibrium constraint(natural residual): .... ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])

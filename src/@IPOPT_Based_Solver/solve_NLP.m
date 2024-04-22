@@ -39,13 +39,6 @@ end
 if p_Init(1) < p_End(1)
     error('s_Init should not smaller than s_End')
 end
-% check penalty parameter
-if (p_Init(2) < 0) || (p_End(2) < 0)
-    error('penalty parameter mu (i.e., p_2) should be nonnegative')
-end
-if p_Init(2) > p_End(2)
-    error('mu_Init should not larger than mu_End')
-end
 
 % load parameter
 kappa_s_times = self.Option.Homotopy.kappa_s_times;
@@ -76,7 +69,6 @@ Log.timeElapsed = zeros(continuationStepMaxNum, 1);
 %% continuation loop (j: continuation step counter)
 z_Init_j = z_Init;
 p_j = p_Init; 
-mu_End = p_End(2);
 j = 1;
 while true
     %% step 1: solve a NLP with given p
@@ -97,12 +89,12 @@ while true
     Log.timeElapsed(j) = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
     if mod(j, 10) == 1
         disp('---------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = ' step  |   param(s/mu)   | cost | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
+        headMsg = ' step  |  param  |   cost   | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
         disp(headMsg)
     end
     prevIterMsg = [' ',...
         num2str(j,'%10.2d'), '/', num2str(continuationStepMaxNum,'%10.2d'),' | ',...
-        num2str(p_j(1), '%10.1e'), ' ', num2str(p_j(2), '%10.1e'), ' | ',...
+        num2str(p_j(1), '%10.1e'), ' | ',...
         num2str(J_j, '%10.2e'), ' | ',...
         num2str(KKT_error_primal_j, '%10.1e'), ' ', num2str(KKT_error_dual_j, '%10.1e'),' | ',...
         num2str(min(self.Solver.stats.iterations.alpha_pr(2:end)), '%10.1e'), ' ',...
@@ -142,13 +134,8 @@ while true
         s_j = p_j(1);
         s_trial = min([kappa_s_times .* s_j, s_j.^kappa_s_exp]);
         s_j = max([s_trial, s_End]);
-        % update penalty parameter
-        mu_j = p_j(2);
-        mu_trial = max([1/s_j, mu_j]);
-        mu_j = min([mu_trial, mu_End]);
         % update parameter vector
         p_j(1) = s_j;
-        p_j(2) = mu_j;
         % update continuation step counter
         j = j + 1;
     end

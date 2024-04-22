@@ -19,15 +19,11 @@ function nlp = create_KKT_based_NLP(self, OCPEC)
 %                 u_n:      control                 
 %                 lambda_n: algebraic variable   
 %                 zeta_n:   dual variable for inequality g formulating VI set K   
-%        (2) p: collects all the NLP problem parameters p = [s, mu]
+%        (2) p: collects all the NLP problem parameters p = s
 %            with s:  nonnegative relax parameter for gap constraints
-%                 mu: nonnegative penalty parameter for penalty function
-%        (3) J: cost function J = J_ocp + J_penalty
-%            J_ocp = sum(J_stage_n)*dt + J_terminal 
-%            J_penalty = mu*sum(J_penalty_n)*dt
+%        (3) J: cost function J = sum(J_stage_n)*dt + J_terminal
 %            with J_stage_n:   stage cost defined in OCPEC
 %                 J_terminal:  terminal cost defined in OCPEC
-%                 J_penalty_n: penalty cost (here set penalty term as zero)
 %        (4) h: equality constraint arranged in a stagewise manner
 %            h = [h_1;...h_n;...h_N] and h_n = [f_n; KKT_stationarity_n; C_n]     
 %            with f_n:                discretized state equation f defined in OCPEC
@@ -41,23 +37,19 @@ function nlp = create_KKT_based_NLP(self, OCPEC)
 %         z: variable
 %         p: parameter
 %         J, h, c: cost and constraint function,  
-%         J_ocp, J_penalty: cost term
 %         Dim: problem size
 
 import casadi.*
 
 %% initialize NLP variable (stagewise, capital)
-% define dual variable dimension
-zeta_Dim = OCPEC.Dim.g;
 % initialize problem variable 
 X = SX.sym('X', OCPEC.Dim.x, OCPEC.nStages); 
 XPrev = [OCPEC.x0, X(:, 1 : end - 1)];
 U = SX.sym('U', OCPEC.Dim.u, OCPEC.nStages);
 LAMBDA = SX.sym('LAMBDA', OCPEC.Dim.lambda, OCPEC.nStages);
-ZETA = SX.sym('ETA', zeta_Dim, OCPEC.nStages); 
+ZETA = SX.sym('ETA', OCPEC.Dim.g, OCPEC.nStages); 
 % initialize problem parameter
 s = SX.sym('s', 1, 1);
-mu = SX.sym('mu', 1, 1);
 
 %% mapping function object
 % stage cost
@@ -76,7 +68,6 @@ KKT_complementarity_func_map = KKT_complementarity_func.map(OCPEC.nStages);
 % cost
 L_S_stage = L_S_map(X, U, LAMBDA);
 L_T = OCPEC.FuncObj.L_T(X(:, end));
-penalty_stage = 0;
 % DVI
 f_stage = f_map(X, U, LAMBDA);
 % path inequality constraint G and equality constraint C
@@ -89,18 +80,16 @@ KKT_complementarity_func_stage = KKT_complementarity_func_map(LAMBDA, ZETA, s);
 %% reshape NLP variable and function (column, lowercase)
 % variable
 Z = [X; U; LAMBDA; ZETA];
-z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + zeta_Dim) * OCPEC.nStages, 1);
-Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, zeta_Dim]); 
+z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + OCPEC.Dim.g) * OCPEC.nStages, 1);
+Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, OCPEC.Dim.g]); 
 Dim.z = size(z, 1);
 
 % problem parameter
-p = [s; mu];
+p = s;
 Dim.p = size(p, 1);
 
 % cost function
-J_ocp = sum(L_S_stage) * OCPEC.timeStep + L_T;
-J_penalty = mu * sum(penalty_stage) * OCPEC.timeStep;
-J = J_ocp + J_penalty;
+J = sum(L_S_stage) * OCPEC.timeStep + L_T;
 
 % equality constraint h = 0
 h_stage = [...
@@ -122,7 +111,6 @@ Dim.c = size(c, 1);
 %% create output struct
 nlp = struct('z', z, 'p', p,...
     'J', J, 'h', h, 'c', c,...
-    'J_ocp', J_ocp, 'J_penalty', J_penalty,...
     'Dim', Dim);
 
 end

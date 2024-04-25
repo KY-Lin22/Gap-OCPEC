@@ -23,9 +23,7 @@ Option.NLP_Solver.ipopt.max_iter = 3000; % default 3000
 % Option.NLP_Solver.ipopt.bound_relax_factor = 0;
 
 %% option for homotopy
-Option.Homotopy.kappa_s_times = 0.9;
-Option.Homotopy.kappa_s_exp = 1.1;
-
+Option.Homotopy.kappa_s_times = 0.01;
 Option.Homotopy.VI_nat_res_tol = 1e-2;
 
 end

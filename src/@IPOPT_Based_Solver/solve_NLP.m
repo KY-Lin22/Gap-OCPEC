@@ -12,8 +12,8 @@ function [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
 %          [z_Opt, Info] = self.solve_NLP(z_Init, p_Init, p_End)
 % Argument:
 %          z_Init: double, NLP.Dim.z X 1, initial guess
-%          p_Init: double, problem parameter (initial) p = [s; mu]
-%          p_End: double, problem parameter (end) p = [s; mu]
+%          p_Init: double, problem parameter (initial) p_Init = [s_Init; other]
+%          p_End: double, problem parameter (end) p_End = [s_End; other]
 % Output:
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information
@@ -42,7 +42,6 @@ end
 
 % load parameter
 kappa_s_times = self.Option.Homotopy.kappa_s_times;
-kappa_s_exp = self.Option.Homotopy.kappa_s_exp;
 VI_nat_res_tol = self.Option.Homotopy.VI_nat_res_tol;
 
 %% create record for time and log 
@@ -56,8 +55,7 @@ while true
     if s_test == s_End
         break
     else        
-        s_trial = min([kappa_s_times * s_test, s_test^kappa_s_exp], [], 2);
-        s_test = max([s_trial, s_End], [], 2);
+        s_test = max([kappa_s_times * s_test, s_End], [], 2);
         continuationStepMaxNum = continuationStepMaxNum + 1;
     end
 end
@@ -83,10 +81,14 @@ while true
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
     KKT_error_dual_j = self.Solver.stats.iterations.inf_du(end); 
     VI_nat_res_j = self.evaluate_natural_residual(z_Opt_j);
+    iterNum_j = self.Solver.stats.iter_count;
+    time_j = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
+    stepSize_primal = self.Solver.stats.iterations.alpha_pr(2:end);
+    stepSize_dual = self.Solver.stats.iterations.alpha_du(2:end);
 
     %% step 2: record and print information of the current continuation iterate
-    Log.iterNum(j) = self.Solver.stats.iter_count;
-    Log.timeElapsed(j) = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
+    Log.iterNum(j) = iterNum_j;
+    Log.timeElapsed(j) = time_j;
     if mod(j, 10) == 1
         disp('---------------------------------------------------------------------------------------------------------------------------------')
         headMsg = ' step  |  param  |   cost   | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
@@ -97,13 +99,11 @@ while true
         num2str(p_j(1), '%10.1e'), ' | ',...
         num2str(J_j, '%10.2e'), ' | ',...
         num2str(KKT_error_primal_j, '%10.1e'), ' ', num2str(KKT_error_dual_j, '%10.1e'),' | ',...
-        num2str(min(self.Solver.stats.iterations.alpha_pr(2:end)), '%10.1e'), ' ',...
-        num2str(sum(self.Solver.stats.iterations.alpha_pr(2:end))/(self.Solver.stats.iter_count), '%10.1e'), ' | ',...
-        num2str(min(self.Solver.stats.iterations.alpha_du(2:end)), '%10.1e'), ' ' ,...
-        num2str(sum(self.Solver.stats.iterations.alpha_du(2:end))/(self.Solver.stats.iter_count), '%10.1e'),' | ',...
+        num2str(min(stepSize_primal), '%10.1e'), ' ', num2str(sum(stepSize_primal)/iterNum_j, '%10.1e'), ' | ',...
+        num2str(min(stepSize_dual), '%10.1e'), ' ', num2str(sum(stepSize_dual)/iterNum_j, '%10.1e'),' | ',...
         num2str(VI_nat_res_j, '%10.1e'),' |   ',...
-        num2str(Log.iterNum(j), '%10.4d'),'  | ',...
-        num2str(Log.timeElapsed(j), '%10.4f')];
+        num2str(iterNum_j, '%10.4d'),'  | ',...
+        num2str(time_j, '%10.4f')];
     disp(prevIterMsg)
 
     %% step 3: check ternimation based on the current homotopy iterate   
@@ -132,8 +132,7 @@ while true
         z_Init_j = z_Opt_j;
         % update relaxation parameter
         s_j = p_j(1);
-        s_trial = min([kappa_s_times .* s_j, s_j.^kappa_s_exp]);
-        s_j = max([s_trial, s_End]);
+        s_j = max([kappa_s_times .* s_j, s_End]);
         % update parameter vector
         p_j(1) = s_j;
         % update continuation step counter

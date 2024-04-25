@@ -18,7 +18,7 @@ tauMax = max(performance_ratio_matrix(performance_ratio_matrix < inf),[],'all');
 performance_ratio_matrix_sorted(performance_ratio_matrix_sorted == inf) = tauMax;
 % plot
 lineStyles = {'-','--',':','-.'};
-X_limit = 10*tauMax;
+X_limit = 2*tauMax;
 figure(1)
 for i = 1 : n_s
     p_r_mat_i = performance_ratio_matrix(:, i);

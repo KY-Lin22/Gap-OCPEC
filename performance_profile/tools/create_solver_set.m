@@ -13,6 +13,7 @@ for i = 1 : numel(OCPEC_func_handle)
     for j = 1 : numel(nStages_sequ)
         OCPEC_i_j = OCPEC_func_handle{i}();
         OCPEC_i_j.nStages = nStages_sequ{j};
+        OCPEC_i_j.timeStep = OCPEC_i_j.timeHorizon ./ OCPEC_i_j.nStages;
         OCPEC_problem_set{i, j} = OCPEC_i_j;
     end
 end

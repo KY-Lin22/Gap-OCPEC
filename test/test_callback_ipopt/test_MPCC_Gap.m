@@ -1,6 +1,13 @@
 clear all
 clc
 
+% callback is too slow as matlab code will be called, now I move to codegen
+% ref
+% https://groups.google.com/g/casadi-users/c/ftSy5dZzfiU
+% https://groups.google.com/g/casadi-users/c/nboKTSx2RRw
+% https://github.com/FreyJo/casados-integrators/blob/main/casados_integrator.py
+
+
 import casadi.*
 % variable
 lambda = MX.sym('lambda', 1, 1);

@@ -1,6 +1,21 @@
 clear all
 clc
 
+% some reference
+% (1) main ref: 
+% Black box functions, casadi.external evaluation with jacobian: https://groups.google.com/g/casadi-users/c/bFTIg2tYgVs/m/KMcCRLMYCQAJ
+% casadi document: section 5.1, 5.2, 6.3 (especially 6.3.3), 6.6
+% ipopt documents: https://coin-or.github.io/Ipopt/OPTIONS.html
+% (2) other ref:
+% Using external function in nlpsol codegen: https://github.com/casadi/casadi/discussions/3674 
+% Error attempting to supply IPOPT with constraint Jacobian using Casadi (C++): https://github.com/casadi/casadi/discussions/3452
+% Use custom_jacobian option: https://github.com/casadi/casadi/discussions/3245
+% Meaning of functions called in ipopt: https://github.com/casadi/casadi/discussions/3178
+% code gen: https://github.com/casadi/casadi/discussions/3302
+
+% (3) use for self-written solver
+% parallelization expression graph and jacobian: https://github.com/casadi/casadi/discussions/3197
+
 %% custom jacobian (function: single output f, multiple input x) 
 x = casadi.SX.sym('x', 2, 1);
 y = casadi.SX.sym('y', 2, 1);

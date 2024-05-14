@@ -33,13 +33,14 @@ phi_func = Function('phi_func', {eta, lambda}, {phi}, {'eta', 'lambda'}, {'phi'}
 % solver
 Prob = struct('x', [lambda; eta; w], 'f', J, 'g', g, 'p', s);
 Option = struct;
-Option.ipopt.bound_relax_factor = 0;
+% Option.ipopt.bound_relax_factor = 0;
 % Option.ipopt.constr_viol_tol = 1e-12;
 % Option.ipopt.print_level = 0;
-Option.ipopt.tol = 1e-8; % default 1e-8
+% Option.ipopt.tol = 1e-8; % default 1e-8
 % Option.ipopt.max_iter = 3000; % default 3000
-solver = casadi.nlpsol('solver', 'ipopt', Prob, Option);
 
+solver = casadi.nlpsol('solver', 'ipopt', Prob, Option);
+%  solver.get_function('nlp_grad')
 %% solve
 s_0 = 1e-12;
 x_0 = [1; 1; 1];

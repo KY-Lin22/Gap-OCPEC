@@ -16,21 +16,23 @@ omega_c = max(0, stationary_point_c);
 p_c = 0.5*lambda^2 - 0.5*omega_c^2 + lambda*(omega_c - lambda);
 phi_c = eta' * (lambda - omega_c) + param_c * p_c;
 % function object for primal gap function
-phi_c_func = Function('phi_c_func', {lambda, eta}, {phi_c});
-gap_func_implementation = 'codegen_fd';
+gap_func_name = 'phi_c_func';
+phi_c_func = Function(gap_func_name, {lambda, eta}, {phi_c});
+gap_func_implementation = 'codegen_jac';
 switch gap_func_implementation
     case 'symbolic'
         % direct use symbolic expression
         phi = phi_c;
-    case 'codegen_fd'
+    case 'codegen_fd'        
         % code gen
-        codeGenerator = CodeGenerator('phi_c_func_codegen_fd', struct('mex',true));
+        code_filename = [gap_func_name '_' gap_func_implementation];
+        codeGenerator = CodeGenerator(code_filename, struct('mex',true));
         codeGenerator.add(phi_c_func);
         codeGenerator.generate;
-        mex phi_c_func_codegen_fd.c -largeArrayDims
+        mex([code_filename '.c'], '-largeArrayDims')
         % load back as external function
-        phi_c_func_import = Importer('phi_c_func_codegen_fd.mexw64','dll');
-        phi_func = external('phi_c_func',phi_c_func_import, struct('enable_fd', true));
+        phi_c_func_import = Importer([code_filename '.mexw64'],'dll');
+        phi_func = external(gap_func_name, phi_c_func_import, struct('enable_fd', true));
         disp(phi_func)
         phi = phi_func(lambda, eta);        
     case 'codegen_jac'
@@ -40,16 +42,17 @@ switch gap_func_implementation
         phi_c_jac_eta = jacobian(phi_c, eta);     
         % function object for custom jacobian of primal gap function 
         nominal_out = MX(1,1); % a empty symbolic variable for 1 x 1 phi_c and not make use of it 
-        phi_c_jac_func = Function('jac_phi_c_func',...% naming convention: names as jac_fname
+        jac_phi_c_func = Function(['jac' '_' gap_func_name],...% naming convention: names as jac_fname
             {lambda, eta, nominal_out}, {phi_c_jac_lambda, phi_c_jac_eta});
         % code gen
-        codeGenerator = CodeGenerator('phi_c_func_codegen_jac', struct('mex',true));
+        code_filename = [gap_func_name '_' gap_func_implementation];
+        codeGenerator = CodeGenerator(code_filename, struct('mex',true));
         codeGenerator.add(phi_c_func);
-        codeGenerator.add(phi_c_jac_func);
+        codeGenerator.add(jac_phi_c_func);
         codeGenerator.generate;
-        mex phi_c_func_codegen_jac.c -largeArrayDims
-        phi_c_func_import = Importer('phi_c_func_codegen_jac.mexw64', 'dll');
-        phi_func = external('phi_c_func', phi_c_func_import);
+        mex([code_filename '.c'], '-largeArrayDims')
+        phi_c_func_import = Importer([code_filename '.mexw64'], 'dll');
+        phi_func = external(gap_func_name, phi_c_func_import);
         disp(phi_func)
         phi = phi_func(lambda, eta);        
 end

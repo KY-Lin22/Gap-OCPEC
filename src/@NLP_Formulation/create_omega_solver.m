@@ -7,6 +7,7 @@ function omega_solver = create_omega_solver(self, OCPEC, param_c)
 %
 % omega_solver is a function object either being a optimization solver parameterized by lambda and omega 
 %                                             or a symbolic function with input lambda and omega
+% for the solver case, later reformulate as a dedicated wrapper using FD or the solver that can provide sensitivity, i.e., variable omega w.r.t parameter lambda, eta)
 import casadi.*
 
 % initialize problem parameter (lambda, eta)
@@ -55,16 +56,7 @@ switch OCPEC.VISetType
             case 'quadratic'
                 stationary_point_c = lambda - (1/param_c) * eta;           
         end
-        % smoothing omega_c' expression: omega_c = mid(bl, bu, stationary_point_c)
-        epsilon = self.gap_func_smooth_param;
-        if epsilon == 0
-            % do not smoothing 
-            omega_c = max(OCPEC.bl, min(stationary_point_c, OCPEC.bu));
-        else
-            % smoothing by CHKS function: refer to example 2 in ''A new look at smoothing Newton methods for NCPs and BVI'', Mathematical Programming, 2000
-            omega_c = 0.5*(OCPEC.bl + sqrt((OCPEC.bl - stationary_point_c).^2 + 4*epsilon^2)) ...
-                + 0.5*(OCPEC.bu - sqrt((OCPEC.bu - stationary_point_c).^2 + 4*epsilon^2));
-        end
+        omega_c = max(OCPEC.bl, min(stationary_point_c, OCPEC.bu));
         % create a single stage solver 
         omega_solver = Function('omega_solver', {lambda, eta}, {omega_c}, {'lambda', 'eta'}, {'omega_c'});
 
@@ -75,15 +67,7 @@ switch OCPEC.VISetType
             case 'quadratic'
                 stationary_point_c = lambda - (1/param_c) * eta;
         end
-        % smoothing omega_c's expression: omega_c = max(0, stationary_point_c)
-        epsilon = self.gap_func_smooth_param;
-        if epsilon == 0
-            % do not smoothing
-            omega_c = max(zeros(OCPEC.Dim.lambda, 1), stationary_point_c);
-        else
-            % smoothing by CHKS function
-            omega_c = 0.5*(sqrt(stationary_point_c.^2 + 4 * epsilon^2) + stationary_point_c);
-        end
+        omega_c = max(zeros(OCPEC.Dim.lambda, 1), stationary_point_c);
         % create a single stage solver 
         omega_solver = Function('omega_solver', {lambda, eta}, {omega_c}, {'lambda', 'eta'}, {'omega_c'});
 

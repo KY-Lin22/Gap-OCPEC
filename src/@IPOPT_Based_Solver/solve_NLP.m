@@ -81,17 +81,17 @@ while true
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
     KKT_error_dual_j = self.Solver.stats.iterations.inf_du(end); 
     VI_nat_res_j = self.evaluate_natural_residual(z_Opt_j);
-    iterNum_j = self.Solver.stats.iter_count;
-    time_j = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
     stepSize_primal = self.Solver.stats.iterations.alpha_pr(2:end);
-    stepSize_dual = self.Solver.stats.iterations.alpha_du(2:end);
+    stepSize_dual = self.Solver.stats.iterations.alpha_du(2:end); 
+    iterNum_j = self.Solver.stats.iter_count;
+    time_j = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;  
 
     %% step 2: record and print information of the current continuation iterate
     Log.iterNum(j) = iterNum_j;
     Log.timeElapsed(j) = time_j;
     if mod(j, 10) == 1
-        disp('---------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = ' step  |  param  |   cost   | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
+        disp('----------------------------------------------------------------------------------------------------------------')
+        headMsg = ' step  |  param  |   cost   | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time[s] ';
         disp(headMsg)
     end
     prevIterMsg = [' ',...

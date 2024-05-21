@@ -1,4 +1,4 @@
-function Option = create_Option(self)
+function Option = create_Option()
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -14,7 +14,7 @@ Option.NLP_Solver.ipopt.print_level = 0;
 % tolerance
 Option.NLP_Solver.ipopt.tol = 1e-8;% default 1e-8
 Option.NLP_Solver.ipopt.max_iter = 3000; % default 3000
-Option.NLP_Solver.ipopt.hessian_approximation = 'exact'; % 'exact' (default), 'limited-memory'
+Option.NLP_Solver.ipopt.hessian_approximation = 'limited-memory'; % 'exact' (default), 'limited-memory'
 % Option.NLP_Solver.ipopt.acceptable_tol = 1e-6; % default 1e-6
 
 % barrier parameter

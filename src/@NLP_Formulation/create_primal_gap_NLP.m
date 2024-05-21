@@ -1,5 +1,5 @@
 function nlp = create_primal_gap_NLP(self, OCPEC)
-% formulate a relax generalized primal gap constraint based NLP (omega_c is a implicit variable)
+% formulate a relax generalized primal gap constraint based NLP
 %
 % OCPEC has the form:
 %  min  L_T(x) + int_0^T L_S(x, u, lambda) dt,
@@ -43,14 +43,34 @@ function nlp = create_primal_gap_NLP(self, OCPEC)
 import casadi.*
 
 %% initialize NLP variable (stagewise, capital)
-% initialize problem variable 
-X = SX.sym('X', OCPEC.Dim.x, OCPEC.nStages); 
-XPrev = [OCPEC.x0, X(:, 1 : end - 1)];
-U = SX.sym('U', OCPEC.Dim.u, OCPEC.nStages);
-LAMBDA = SX.sym('LAMBDA', OCPEC.Dim.lambda, OCPEC.nStages);
-ETA = SX.sym('ETA', OCPEC.Dim.lambda, OCPEC.nStages); 
+% initialize problem variable (cell)
+X_cell = cell(1, OCPEC.nStages);
+U_cell = cell(1, OCPEC.nStages);
+LAMBDA_cell = cell(1, OCPEC.nStages);
+ETA_cell = cell(1, OCPEC.nStages);
+for n = 1 : OCPEC.nStages
+    x_n = MX.sym(['x_' num2str(n)], OCPEC.Dim.x, 1);
+    u_n = MX.sym(['u_' num2str(n)], OCPEC.Dim.u, 1);
+    lambda_n = MX.sym(['lambda_' num2str(n)], OCPEC.Dim.lambda, 1);
+    eta_n = MX.sym(['eta_' num2str(n)], OCPEC.Dim.lambda, 1);
+    X_cell{1, n} = x_n;
+    U_cell{1, n} = u_n;
+    LAMBDA_cell{1, n} = lambda_n;
+    ETA_cell{1, n} = eta_n;
+end
+XPrev_cell = [OCPEC.x0, X_cell(1, 1 : end - 1)];
+Z_cell = [X_cell; U_cell; LAMBDA_cell; ETA_cell];
+
+% initialize problem variable (MX)
+X = horzcat(X_cell{:});
+U = horzcat(U_cell{:});
+LAMBDA = horzcat(LAMBDA_cell{:});
+ETA = horzcat(ETA_cell{:});
+XPrev = horzcat(XPrev_cell{:});
+Z = vertcat(Z_cell{:});
+
 % initialize problem parameter
-s = SX.sym('s', 1, 1);
+s = MX.sym('s', 1, 1);
 
 %% mapping function object
 % stage cost
@@ -63,7 +83,7 @@ g_map = OCPEC.FuncObj.g.map(OCPEC.nStages);
 G_map = OCPEC.FuncObj.G.map(OCPEC.nStages);
 C_map = OCPEC.FuncObj.C.map(OCPEC.nStages);
 % generalized primal gap function phi_c (function of lambda and eta)
-param_c = 1;
+param_c = self.primal_gap_param_c;
 phi_c_func = self.create_phi_c_func(OCPEC, param_c);
 phi_c_func_map = phi_c_func.map(OCPEC.nStages);
 
@@ -83,8 +103,7 @@ phi_stage = phi_c_func_map(LAMBDA, ETA);
 
 %% reshape NLP variable and function (column, lowercase)
 % variable
-Z = [X; U; LAMBDA; ETA];
-z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + OCPEC.Dim.lambda) * OCPEC.nStages, 1);
+z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + 2 * OCPEC.Dim.lambda) * OCPEC.nStages, 1);
 Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, OCPEC.Dim.lambda]); 
 Dim.z = size(z, 1);
 

@@ -10,26 +10,25 @@ classdef IPOPT_Based_Solver < handle
     properties
         OCPEC % struct, optimal control problem with equalibrium constraints
         NLP % struct, nonlinear programming problem (discretized OCPEC)
-        Option % struct, IPOPT solver option
+        Option % struct, IPOPT solver and homotopy option
         Solver % function object, IPOPT solver
     end
     
     %% Constructor method       
     methods
-        function self = IPOPT_Based_Solver(OCPEC, NLP)
+        function self = IPOPT_Based_Solver(OCPEC, NLP, Option)
             %IPOPT_Based_Solver Construct an instance of this class
             %   Detailed explanation goes here
             import casadi.*
             disp('creating solver...')
-            % properties: OCPEC and NLP
+            % properties: OCPEC, NLP, and Option
             self.OCPEC = OCPEC;
             self.NLP = NLP;           
-            % properties: solver option
-            self.Option = self.create_Option();         
+            self.Option = Option;         
             % properties: solver
-            Prob = struct('x', NLP.z, 'f', NLP.J, 'g', [NLP.h; NLP.c], 'p', NLP.p);           
-            Option = self.Option.NLP_Solver;
-            self.Solver = nlpsol('Solver', 'ipopt', Prob, Option);
+            NLP_Prob = struct('x', NLP.z, 'f', NLP.J, 'g', [NLP.h; NLP.c], 'p', NLP.p);           
+            NLP_Solver_Option = Option.NLP_Solver;
+            self.Solver = nlpsol('Solver', 'ipopt', NLP_Prob, NLP_Solver_Option);
 
             disp('Done!')
         end
@@ -38,9 +37,6 @@ classdef IPOPT_Based_Solver < handle
     
     %% Other method
     methods
-        % create solver option
-        Option = create_Option(self)   
-        
         % solve a sequence of NLP in a homotopy manner from p_Init to p_End 
         [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
 
@@ -48,5 +44,9 @@ classdef IPOPT_Based_Solver < handle
         natRes = evaluate_natural_residual(self, z_Opt)  
     end
     
+    methods(Static)
+        % create solver option
+        Option = create_Option()  
+    end
 end
 

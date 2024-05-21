@@ -51,6 +51,7 @@ classdef OCPEC_Formulation < handle
                 G, C)
             %OCPEC_Formulation: Construct an instance of this class
             %   Detailed explanation goes here
+            disp('creating OCPEC...')
             %% formulate OCPEC
             % time parameter
             self.timeHorizon = timeHorizon;
@@ -96,6 +97,8 @@ classdef OCPEC_Formulation < handle
             disp(['number of VI set inequality (g): ............ ', num2str(self.Dim.g)])
             disp(['number of path inequality constraint (G): ... ', num2str(self.Dim.G)])
             disp(['number of path equality constraint (C): ..... ', num2str(self.Dim.C)])
+
+            disp('Done!')
 
         end
 

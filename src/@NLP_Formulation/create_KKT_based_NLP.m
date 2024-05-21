@@ -44,15 +44,38 @@ function nlp = create_KKT_based_NLP(self, OCPEC)
 import casadi.*
 
 %% initialize NLP variable (stagewise, capital)
-% initialize problem variable 
-X = SX.sym('X', OCPEC.Dim.x, OCPEC.nStages); 
-XPrev = [OCPEC.x0, X(:, 1 : end - 1)];
-U = SX.sym('U', OCPEC.Dim.u, OCPEC.nStages);
-LAMBDA = SX.sym('LAMBDA', OCPEC.Dim.lambda, OCPEC.nStages);
-ZETA = SX.sym('ETA', OCPEC.Dim.g, OCPEC.nStages); 
-W = SX.sym('W', OCPEC.Dim.g, OCPEC.nStages); 
+% initialize problem variable (cell)
+X_cell = cell(1, OCPEC.nStages);
+U_cell = cell(1, OCPEC.nStages);
+LAMBDA_cell = cell(1, OCPEC.nStages);
+ZETA_cell = cell(1, OCPEC.nStages);
+W_cell = cell(1, OCPEC.nStages);
+for n = 1 : OCPEC.nStages
+    x_n = MX.sym(['x_' num2str(n)], OCPEC.Dim.x, 1);
+    u_n = MX.sym(['u_' num2str(n)], OCPEC.Dim.u, 1);
+    lambda_n = MX.sym(['lambda_' num2str(n)], OCPEC.Dim.lambda, 1);
+    zeta_n = MX.sym(['zeta_' num2str(n)], OCPEC.Dim.g, 1);
+    w_n = MX.sym(['w_' num2str(n)], OCPEC.Dim.g, 1);
+    X_cell{1, n} = x_n;
+    U_cell{1, n} = u_n;
+    LAMBDA_cell{1, n} = lambda_n;
+    ZETA_cell{1, n} = zeta_n;
+    W_cell{1, n} = w_n;
+end
+XPrev_cell = [OCPEC.x0, X_cell(1, 1 : end - 1)];
+Z_cell = [X_cell; U_cell; LAMBDA_cell; ZETA_cell; W_cell];
+
+% initialize problem variable (MX)
+X = horzcat(X_cell{:});
+U = horzcat(U_cell{:});
+LAMBDA = horzcat(LAMBDA_cell{:});
+ZETA = horzcat(ZETA_cell{:});
+W = horzcat(W_cell{:});
+XPrev = horzcat(XPrev_cell{:});
+Z = vertcat(Z_cell{:});
+
 % initialize problem parameter
-s = SX.sym('s', 1, 1);
+s = MX.sym('s', 1, 1);
 
 %% mapping function object
 % stage cost
@@ -84,8 +107,7 @@ KKT_complementarity_func_stage = KKT_complementarity_func_map(ZETA, W, s);
 
 %% reshape NLP variable and function (column, lowercase)
 % variable
-Z = [X; U; LAMBDA; ZETA; W];
-z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + 2* OCPEC.Dim.g) * OCPEC.nStages, 1);
+z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + OCPEC.Dim.lambda + 2 * OCPEC.Dim.g) * OCPEC.nStages, 1);
 Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, OCPEC.Dim.g, OCPEC.Dim.g]); 
 Dim.z = size(z, 1);
 

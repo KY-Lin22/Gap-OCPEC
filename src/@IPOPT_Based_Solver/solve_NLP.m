@@ -91,7 +91,7 @@ while true
     Log.timeElapsed(j) = time_j;
     if mod(j, 10) == 1
         disp('----------------------------------------------------------------------------------------------------------------')
-        headMsg = ' step  |  param  |   cost   | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time[s] ';
+        headMsg = ' step  |  param  |   cost   | KKT(primal/dual)| alpha_p(min/avg)| alpha_d(min/avg)| nat_res | iterNum | time[s] ';
         disp(headMsg)
     end
     prevIterMsg = [' ',...

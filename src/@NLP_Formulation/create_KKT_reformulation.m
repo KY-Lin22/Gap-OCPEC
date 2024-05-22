@@ -28,6 +28,26 @@ switch self.KKT_complementarity_relaxation_strategy
         KKT_complementarity = [s^2 - zeta .* w; (zeta + s) .* (w + s) - s^2];
     case 'Kadrani'
         KKT_complementarity = [zeta + s; w + s; - (zeta - s) .* (w - s)];
+    case 'Steffensen_Ulbrich'
+        % ref: A new relaxation scheme for mathematical programs with equilibrium constraints, Steffensen and Ulbrich
+        % theta function
+        z = SX.sym('z', OCPEC.Dim.g, 1);
+        theta = 2/pi * sin(z*pi/2 + 3*pi/2) + 1;
+        theta_func = Function('theta_func', {z}, {theta});
+        % phi_SU function
+        phi_SU = if_else(abs(z) - s >= 0, abs(z), s * theta_func(z/s));
+        phi_SU_func = Function('phi_SU_func', {z, s}, {phi_SU});
+        % KKT complementarity
+        KKT_complementarity = [zeta; w; phi_SU_func(zeta - w, s) - zeta - w];
+    case 'Kanzow_Schwartz'
+        % ref: A new regularization method for mathematical programs with complementarity constraints with strong convergence properties, Kanzow, Christian and Schwartz, Alexandra
+        % phi_KS
+        a = SX.sym('a', 1, 1);
+        b = SX.sym('b', 1, 1);
+        phi_KS = if_else(a + b >= 0, a*b, -1/2*(a^2 + b^2));
+        phi_KS_func = Function('phi_KS_func', {a, b}, {phi_KS});
+        % KKT complementarity
+        KKT_complementarity = [zeta; w; - phi_KS_func(zeta - s, w - s)];
 end
 KKT_complementarity_func = Function('KKT_complementarity_func',...
     {zeta, w, s}, {KKT_complementarity},  {'zeta', 'w', 's'}, {'KKT_complementarity'});

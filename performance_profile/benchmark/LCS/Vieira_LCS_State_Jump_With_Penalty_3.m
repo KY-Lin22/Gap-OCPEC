@@ -1,4 +1,4 @@
-function OCPEC = Vieira_LCS_State_Jump_2()
+function OCPEC = Vieira_LCS_State_Jump_With_Penalty_3()
 % ref: example 7 in ''Quadratic Optimal Control of Linear Complementarity 
 %      Systems : First order necessary conditions and numerical analysis''
 %      2018, A. Vieira, et. al,
@@ -10,7 +10,7 @@ nStages = 1000; % number of discretized stages
 timeStep = timeHorizon ./ nStages; % discretization time step
 
 % initial state
-x0 = [-2; 1; -1]; 
+x0 = [-2; 1; -1];
 
 % variable 
 xDim = 3;
@@ -21,7 +21,7 @@ u = SX.sym('u', uDim, 1);
 lambda = SX.sym('lambda', lambdaDim, 1);
 
 % cost function
-alpha = 1;
+alpha = 0.1;
 L_S = x' * x + u^2 + alpha * lambda^2;
 L_T = 0;
 
@@ -44,6 +44,6 @@ OCPEC = OCPEC_Formulation(...
     x0, ...
     x, u, lambda,...
     L_T, L_S,...
-    f, g, F, VISetType, bl, bu,...
+    f, g, F, VISetType, bl, bu, ...
     G, C);
 end

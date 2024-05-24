@@ -1,5 +1,5 @@
-function OCPEC = Vieira_LCS_With_Penalty_1()
-% ref: example 5 in ''Quadratic Optimal Control of Linear Complementarity 
+function OCPEC = Vieira_LCS_Rel_Deg_One_With_Penalty_3()
+% ref: example 2 in ''Quadratic Optimal Control of Linear Complementarity 
 %      Systems : First order necessary conditions and numerical analysis''
 %      2018, A. Vieira, et. al,
 import casadi.*
@@ -9,9 +9,8 @@ import casadi.*
 timeHorizon = 1; % time horizon T
 nStages = 100; % number of discretized stages
 timeStep = timeHorizon ./ nStages; % discretization time step
-
 % initial state
-x0 = [-0.5; -1]; 
+x0 = [-0.5; 1]; % initial state
 
 % variable 
 xDim = 2;
@@ -22,14 +21,14 @@ u = SX.sym('u', uDim, 1);
 lambda = SX.sym('lambda', lambdaDim, 1);
 
 % cost function
-alpha = 10;
+alpha = 0.1;
 L_S = x'*x + u^2 + alpha*lambda^2;
 L_T = 0;
 
 % DVI
-f = [5, -6; 3, 9] * x + [0; -4] * u +  [4; 5]* lambda; % state equation f
+f = [0, 1; 0, 0]*x + [0; 1] * u + [-1; 1] * lambda; % state equation f
 g = lambda;
-F = [-1, 5] * x + 6 * u + lambda; % VI function F
+F = [-1, 1] * x + u; % VI function F
 VISetType = 'nonnegative_orthant'; 
 bl = 0;
 bu = inf;

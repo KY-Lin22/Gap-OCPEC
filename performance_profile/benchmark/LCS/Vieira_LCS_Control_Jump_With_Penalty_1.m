@@ -1,4 +1,4 @@
-function OCPEC = Vieira_LCS_Control_Jump()
+function OCPEC = Vieira_LCS_Control_Jump_With_Penalty_1()
 % ref: example 6 in ''Quadratic Optimal Control of Linear Complementarity 
 %      Systems : First order necessary conditions and numerical analysis''
 %      2018, A. Vieira, et. al,
@@ -21,7 +21,8 @@ u = SX.sym('u', uDim, 1);
 lambda = SX.sym('lambda', lambdaDim, 1);
 
 % cost function
-L_S = x' * x + u^2;
+alpha = 10;
+L_S = x'*x + u^2 + alpha*lambda^2;
 L_T = 0;
 
 % DVI

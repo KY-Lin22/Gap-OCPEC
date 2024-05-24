@@ -1,4 +1,4 @@
-function OCPEC = Vieira_LCS_State_Jump_1()
+function OCPEC = Vieira_LCS_State_Jump_With_Penalty_1()
 % ref: example 7 in ''Quadratic Optimal Control of Linear Complementarity 
 %      Systems : First order necessary conditions and numerical analysis''
 %      2018, A. Vieira, et. al,

@@ -152,6 +152,7 @@ while true
         Info.KKT_error.primal = KKT_error_primal_j;
         Info.KKT_error.dual = KKT_error_dual_j;
         Info.VI_natural_residual = VI_nat_res_j;
+        Info.Log = Log;
         Info.time = sum(Log.timeElapsed);
         Info.iterNum = sum(Log.iterNum);
         % display homotopy terminal result and then break        

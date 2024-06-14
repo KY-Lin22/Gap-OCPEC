@@ -12,6 +12,7 @@ Rec.cost = zeros(size(solver_set));
 Rec.time = zeros(size(solver_set));
 Rec.iterNum = zeros(size(solver_set));
 Rec.time_avg = zeros(size(solver_set));
+Rec.time_first = zeros(size(solver_set));
 Rec.VI_nat_res = zeros(size(solver_set));
 Rec.dual_var_inf_norm = zeros(size(solver_set));
 % solve
@@ -35,6 +36,7 @@ for i = 1 : size(solver_set, 1)
             Rec.time(i, j) = Info_i_j.time;
             Rec.iterNum(i, j) = Info_i_j.iterNum;
             Rec.time_avg(i, j) = Info_i_j.time/Info_i_j.iterNum;
+            Rec.time_first(i, j) = Info_i_j.Log.timeElapsed(1);
             Rec.VI_nat_res(i, j) = Info_i_j.VI_natural_residual;
             Rec.dual_var_inf_norm(i, j) = norm(Info_i_j.dual_var, inf);
         else
@@ -43,6 +45,12 @@ for i = 1 : size(solver_set, 1)
             Rec.time(i, j) = inf;
             Rec.iterNum(i, j) = inf;
             Rec.time_avg(i, j) = inf;
+            if Info_i_j.continuationStepNum ~= 1
+                % the first step succeed, but one of the subsequent step fails
+                Rec.time_first(i, j) = Info_i_j.Log.timeElapsed(1);
+            else
+                Rec.time_first(i, j) = inf;
+            end
             Rec.VI_nat_res(i, j) = inf;
             Rec.dual_var_inf_norm(i, j) = inf;
         end

@@ -110,26 +110,29 @@ solver_set = create_solver_set(OCPEC_func_handle, nStages_sequ, NLP_option_set, 
 
 %% run test
 param_set = {};
+% init weight counter
+init_weight_counter = 3;
+init_weight = (base_point)^init_weight_counter;
 % parameter
 s_End = 1e-8;
 % KKT
 KKT_param_set = {...
-    struct('p_Init', 1, 'p_End', s_End),...% KKT (Scholtes)
-    struct('p_Init', 1, 'p_End', s_End),...% KKT (Lin-Fuku)
-    struct('p_Init', 1, 'p_End', s_End),...% KKT (Kadrani)
-    struct('p_Init', 2*pi/(pi-2), 'p_End', s_End),...% KKT (Steffensen-Ulbrich)
-    struct('p_Init', 1, 'p_End', s_End)...% KKT (Kanzow-Schwartz)
+    struct('p_Init', 1*init_weight, 'p_End', s_End),...% KKT (Scholtes)
+    struct('p_Init', 1*init_weight, 'p_End', s_End),...% KKT (Lin-Fuku)
+    struct('p_Init', 1*init_weight, 'p_End', s_End),...% KKT (Kadrani)
+    struct('p_Init', (2*pi/(pi-2))*init_weight, 'p_End', s_End),...% KKT (Steffensen-Ulbrich)
+    struct('p_Init', 1*init_weight, 'p_End', s_End)...% KKT (Kanzow-Schwartz)
     };
 for i = 1 : numel(KKT_relaxation_strategy)
     param_set{end + 1} = KKT_param_set{i};
 end
 % gap (primal): s_Init = 1 - c/2
 for i = 1 : numel(param_c)
-    param_set{end + 1} = struct('p_Init', 1-(param_c{i})/2, 'p_End', s_End);
+    param_set{end + 1} = struct('p_Init', (1-(param_c{i})/2)*init_weight, 'p_End', s_End);
 end
 % gap (D): s_Init = 1 - a/2 - 1/(2b)
 for i = 1 : numel(param_a)
-    param_set{end + 1} = struct('p_Init', 1-(param_a{i})/2-1/(2*param_b{i}), 'p_End', s_End); 
+    param_set{end + 1} = struct('p_Init', (1-(param_a{i})/2-1/(2*param_b{i}))*init_weight, 'p_End', s_End); 
 end
 % solve
 Rec = run_solver_test(solver_set, param_set);

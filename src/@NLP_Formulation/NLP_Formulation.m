@@ -10,9 +10,9 @@ classdef NLP_Formulation < handle
     %       C(x, u) = 0,    
     %
     % NLP has the form:
-    %  min  J(z, p),
-    %  s.t. h(z, p) = 0,
-    %       c(z, p) >= 0
+    %  min  J(z),
+    %  s.t. h(z) = 0,
+    %       c(z, s) >= 0
     %
     properties
         relaxation_problem char {mustBeMember(relaxation_problem, {...
@@ -48,7 +48,7 @@ classdef NLP_Formulation < handle
 
     properties
         z % symbolic variable, includes all the variable to be optimized,
-        p % symbolic variable, including all the problem parameter
+        s % symbolic variable, relaxation parameter
         J % symbolic function, cost function 
         h % symbolic function, equality constraint    
         c % symbolic function, inequality constraint   
@@ -106,7 +106,7 @@ classdef NLP_Formulation < handle
                     nlp = self.create_KKT_based_NLP(OCPEC);
             end
             self.z = nlp.z;   
-            self.p = nlp.p;
+            self.s = nlp.s;
             self.J = nlp.J;    
             self.h = nlp.h;  
             self.c = nlp.c;        
@@ -134,7 +134,6 @@ classdef NLP_Formulation < handle
             end
             disp('2. Problem Size')
             disp(['number of decision variable (z): ..................... ', num2str(self.Dim.z)])
-            disp(['number of parameter (p): ............................. ', num2str(self.Dim.p)])
             disp(['number of equality constraint (h): ................... ', num2str(self.Dim.h)])
             disp(['number of inequality constraint (c): ................. ', num2str(self.Dim.c)])
             

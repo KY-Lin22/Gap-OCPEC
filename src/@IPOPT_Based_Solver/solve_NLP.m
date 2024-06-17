@@ -1,19 +1,19 @@
-function [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
-% solve NLP with given z_Init, p_Init, and p_End by IPOPT using continuation method
+function [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
+% solve parameterized NLP by IPOPT using continuation method
 % NLP has the form:
-%  min  J(z, p),
-%  s.t. h(z, p) = 0,
-%       c(z, p) >= 0,
+%  min  J(z),
+%  s.t. h(z) = 0,
+%       c(z, s) >= 0,
 % where: z is the variable,
-%        p is the parameter,
+%        s is the parameter,
 %        J is the cost, and h, c are the constraints
 % Syntax:
-%          [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
-%          [z_Opt, Info] = self.solve_NLP(z_Init, p_Init, p_End)
+%          [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
+%          [z_Opt, Info] = self.solve_NLP(z_Init, s_Init, s_End)
 % Argument:
 %          z_Init: double, NLP.Dim.z X 1, initial guess
-%          p_Init: double, problem parameter (initial) p_Init = [s_Init; other]
-%          p_End: double, problem parameter (end) p_End = [s_End; other]
+%          s_Init: double, relaxation parameter (initial)
+%          s_End: double, relaxation parameter (end)
 % Output:
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information
@@ -25,30 +25,22 @@ import casadi.*
 if ~all(size(z_Init) == [self.NLP.Dim.z, 1])
     error('z_Init has wrong dimension')
 end
-% check parameter size
-if ~all(size(p_Init) == [self.NLP.Dim.p, 1])
-    error('p_Init has wrong dimension')
+% check relaxation parameter 
+if (~isscalar(s_Init)) || (s_Init < 0)
+    error('s_Init should be a nonnegative scalar')
 end
-if ~all(size(p_End) == [self.NLP.Dim.p, 1])
-    error('p_End has wrong dimension')
+if (~isscalar(s_End)) || (s_End < 0)
+    error('s_End should be a nonnegative scalar')
 end
-% check relaxation parameter
-if (p_Init(1) < 0) || (p_End(1) < 0)
-    error('relax parameter s (i.e., p_1) should be nonnegative')
-end
-if p_Init(1) < p_End(1)
+if s_Init < s_End
     error('s_Init should not smaller than s_End')
 end
-
 % load parameter
 kappa_s_times = self.Option.Homotopy.kappa_s_times;
 VI_nat_res_tol = self.Option.Homotopy.VI_nat_res_tol;
 
 %% create record for time and log 
-% evaluate the max number of continuation step based on given s_Init, s_End 
-% and specified kappa_s_times, kappa_s_exp
-s_Init = p_Init(1);
-s_End = p_End(1);
+% evaluate the max number of continuation step
 s_test = s_Init;
 continuationStepMaxNum = 1;
 while true
@@ -59,19 +51,18 @@ while true
         continuationStepMaxNum = continuationStepMaxNum + 1;
     end
 end
-
-% log: elapsed time and iterNum in each continuation step
+% log: iterNum and elapsed time in each continuation step
 Log.iterNum     = zeros(continuationStepMaxNum, 1);
 Log.timeElapsed = zeros(continuationStepMaxNum, 1); 
 
 %% continuation loop (j: continuation step counter)
 z_Init_j = z_Init;
-p_j = p_Init; 
+s_j = s_Init; 
 j = 1;
 while true
-    %% step 1: solve a NLP with given p
+    %% step 1: solve a NLP with given s
     % solve problem
-    solution_j = self.Solver('x0', z_Init_j, 'p', p_j,...
+    solution_j = self.Solver('x0', z_Init_j, 'p', s_j,...
         'lbg', [zeros(self.NLP.Dim.h, 1); zeros(self.NLP.Dim.c, 1)],...
         'ubg', [zeros(self.NLP.Dim.h, 1); inf*ones(self.NLP.Dim.c, 1)]);
     % extract solution and information
@@ -81,8 +72,8 @@ while true
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
     KKT_error_dual_j = self.Solver.stats.iterations.inf_du(end); 
     VI_nat_res_j = self.evaluate_natural_residual(z_Opt_j);
-    stepSize_primal = self.Solver.stats.iterations.alpha_pr(2:end);
-    stepSize_dual = self.Solver.stats.iterations.alpha_du(2:end); 
+    stepSize_primal_j = self.Solver.stats.iterations.alpha_pr(2:end);
+    stepSize_dual_j = self.Solver.stats.iterations.alpha_du(2:end); 
     iterNum_j = self.Solver.stats.iter_count;
     time_j = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;  
 
@@ -96,11 +87,11 @@ while true
     end
     prevIterMsg = [' ',...
         num2str(j,'%10.2d'), '/', num2str(continuationStepMaxNum,'%10.2d'),' | ',...
-        num2str(p_j(1), '%10.1e'), ' | ',...
+        num2str(s_j, '%10.1e'), ' | ',...
         num2str(J_j, '%10.2e'), ' | ',...
         num2str(KKT_error_primal_j, '%10.1e'), ' ', num2str(KKT_error_dual_j, '%10.1e'),' | ',...
-        num2str(min(stepSize_primal), '%10.1e'), ' ', num2str(sum(stepSize_primal)/iterNum_j, '%10.1e'), ' | ',...
-        num2str(min(stepSize_dual), '%10.1e'), ' ', num2str(sum(stepSize_dual)/iterNum_j, '%10.1e'),' | ',...
+        num2str(min(stepSize_primal_j), '%10.1e'), ' ', num2str(sum(stepSize_primal_j)/iterNum_j, '%10.1e'), ' | ',...
+        num2str(min(stepSize_dual_j), '%10.1e'), ' ', num2str(sum(stepSize_dual_j)/iterNum_j, '%10.1e'),' | ',...
         num2str(VI_nat_res_j, '%10.1e'),' |   ',...
         num2str(iterNum_j, '%10.4d'),'  | ',...
         num2str(time_j, '%10.4f')];
@@ -128,14 +119,9 @@ while true
     else
         % IPOPT at this homotopy iteration (not the final) finds the optimal solution, prepare for next homotopy iteration
         exitFlag = false;
-        % update initial guess
+        % update initial guess, relaxation parameter and continuation step counter
         z_Init_j = z_Opt_j;
-        % update relaxation parameter
-        s_j = p_j(1);
         s_j = max([kappa_s_times .* s_j, s_End]);
-        % update parameter vector
-        p_j(1) = s_j;
-        % update continuation step counter
         j = j + 1;
     end
 

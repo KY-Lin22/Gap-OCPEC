@@ -10,17 +10,16 @@ function nlp = create_primal_gap_NLP(self, OCPEC)
 %       C(x, u) = 0,
 %
 % NLP has the form:
-%  min  J(z, p),
-%  s.t. h(z, p) = 0,
-%       c(z, p) >= 0
+%  min  J(z),
+%  s.t. h(z) = 0,
+%       c(z, s) >= 0
 % where: (1) z: collects all the variables to be optimized and arranged in a stagewise manner
 %            z = [z_1;...z_n;...z_N] and z_n = [x_n; u_n; lambda_n; eta_n] 
 %            with x_n:      system state
 %                 u_n:      control                 
 %                 lambda_n: algebraic variable   
 %                 eta_n:    auxiliary variable for VI function F in gap function
-%        (2) p: collects all the NLP problem parameters p = s
-%            with s:  nonnegative relax parameter for gap constraints
+%        (2) s: nonnegative relax parameter for gap constraints
 %        (3) J: cost function J = sum(J_stage_n)*dt + J_terminal
 %            with J_stage_n:   stage cost defined in OCPEC
 %                 J_terminal:  terminal cost defined in OCPEC
@@ -36,7 +35,7 @@ function nlp = create_primal_gap_NLP(self, OCPEC)
 %                 G_n: path inequality constraints G defined in OCPEC
 % output: nlp is a structure with fields:
 %         z: variable
-%         p: parameter
+%         s: parameter
 %         J, h, c: cost and constraint function,  
 %         Dim: problem size
 
@@ -69,7 +68,7 @@ ETA = horzcat(ETA_cell{:});
 XPrev = horzcat(XPrev_cell{:});
 Z = vertcat(Z_cell{:});
 
-% initialize problem parameter
+% initialize relaxation parameter
 s = MX.sym('s', 1, 1);
 
 %% mapping function object
@@ -107,10 +106,6 @@ z = reshape(Z, (OCPEC.Dim.x + OCPEC.Dim.u + 2 * OCPEC.Dim.lambda) * OCPEC.nStage
 Dim.z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, OCPEC.Dim.lambda]); 
 Dim.z = size(z, 1);
 
-% problem parameter
-p = s;
-Dim.p = size(p, 1);
-
 % cost function
 J = sum(L_S_stage) * OCPEC.timeStep + L_T;
 
@@ -133,7 +128,7 @@ Dim.c_Node = cumsum([OCPEC.Dim.g, 1, OCPEC.Dim.G]);
 Dim.c = size(c, 1);
 
 %% create output struct
-nlp = struct('z', z, 'p', p,...
+nlp = struct('z', z, 's', s,...
     'J', J, 'h', h, 'c', c,...
     'Dim', Dim);
 

@@ -1,5 +1,4 @@
-function [KKT_error_primal, KKT_error_dual, KKT_error_dual_scaled,...
-    KKT_error_complementary, KKT_error_complementary_scaled, KKT_error_total] = ...
+function [KKT_error_primal, KKT_error_dual, KKT_error_complementary] = ...
     evaluate_KKT_error(self, gamma_h, gamma_c, h, c, LAG_grad_z)
 %UNTITLED10 Summary of this function goes here
 %   Detailed explanation goes here
@@ -11,10 +10,7 @@ scaling_complementary = max([self.Option.KKT_scaling_max,...
 
 % KKT error
 KKT_error_primal = norm([h; min([zeros(self.NLP.Dim.c, 1), c], [], 2)], inf);
-KKT_error_dual = norm([LAG_grad_z'; min([zeros(self.NLP.Dim.c, 1), gamma_c], [], 2)], inf);
-KKT_error_dual_scaled = KKT_error_dual/scaling_dual;
-KKT_error_complementary = norm(c .* gamma_c, inf);
-KKT_error_complementary_scaled = KKT_error_complementary/scaling_complementary;
-KKT_error_total = max([KKT_error_primal, KKT_error_dual_scaled, KKT_error_complementary_scaled]);
+KKT_error_dual = norm([LAG_grad_z'; min([zeros(self.NLP.Dim.c, 1), gamma_c], [], 2)], inf)/scaling_dual;
+KKT_error_complementary = norm(c .* gamma_c, inf)/scaling_complementary;
 
 end

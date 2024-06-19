@@ -7,18 +7,14 @@ Option.printLevel = 2; % 0: print nothing;
                        % 2: print results and iteration log (should specified recordLevel as 1)
 
 %% Option for stage 1: non-interior-point method
-% initialization   
-Option.Init.kappa_bound = 1e-2; % scaling parameter for single bound to evaluate perturbation (default 1e-2)
-Option.Init.kappa_interval = 1e-2; % scaling parameter for interval to evaluate perturbation (default 1e-2)
-
 % tolerance
 Option.maxIterNum = 200;
 
 Option.KKT_scaling_max = 1;
-Option.tol.KKT_error_primal = 1e-6;
-Option.tol.KKT_error_dual = 1e-4;
-Option.tol.KKT_error_complementarity = 1e-4;
-Option.tol.KKT_error_total = 1e-3;
+Option.tol.KKT_error_primal = 1e-2;
+Option.tol.KKT_error_dual = 1e-2;
+Option.tol.KKT_error_complementarity = 1e-2;
+Option.tol.KKT_error_total = 1e-2;
 Option.tol.dYNorm = 1e-6;
 
 % singularity regularization parameter for KKT matrix 

@@ -33,20 +33,21 @@ psi = sqrt(a^2 + b^2 + sigma^2) - a - b;
 psi_FuncObj = Function('psi', {a, b, sigma}, {psi}, {'a', 'b', 'sigma'}, {'psi'});
 
 % formulate smooth FB function (element-wise) for inequality constraint c
+c = SX.sym('c', NLP.Dim.c, 1);
 gamma_c = SX.sym('gamma_c', NLP.Dim.c, 1);
-xi_c = SX.sym('xi_c', NLP.Dim.c, 1);
 psi_FuncObj_map_c = psi_FuncObj.map(NLP.Dim.c);
-PSI = (psi_FuncObj_map_c(gamma_c', xi_c', sigma))';
+PSI = (psi_FuncObj_map_c(c', gamma_c', sigma))';
 
 % formulate smooth FB jacobian (element-wise) for inequality constraint c
+PSI_grad_c = jacobian(PSI, c);
 PSI_grad_gamma_c = jacobian(PSI, gamma_c);
-PSI_grad_xi_c = jacobian(PSI, xi_c);
 
 % create function object
-FuncObj.PSI = Function('PSI', {gamma_c, xi_c, sigma}, {PSI}, {'gamma_c', 'xi_c', 'sigma'}, {'PSI'});
-FuncObj.PSI_grad_gamma_c = Function('PSI_grad_gamma_c', {gamma_c, xi_c, sigma}, {PSI_grad_gamma_c},...
-    {'gamma_c', 'xi_c', 'sigma'}, {'PSI_grad_gamma_c'});
-FuncObj.PSI_grad_xi_c = Function('PSI_grad_xi_c', {gamma_c, xi_c, sigma}, {PSI_grad_xi_c},...
-    {'gamma_c', 'xi_c', 'sigma'}, {'PSI_grad_xi_c'});
+FuncObj.PSI = Function('PSI', {c, gamma_c, sigma}, {PSI}, {'c', 'gamma_c', 'sigma'}, {'PSI'});
+
+FuncObj.PSI_grad_c = Function('PSI_grad_c', {c, gamma_c, sigma}, {PSI_grad_c},...
+    {'c', 'gamma_c', 'sigma'}, {'PSI_grad_c'});
+FuncObj.PSI_grad_gamma_c = Function('PSI_grad_gamma_c', {c, gamma_c, sigma}, {PSI_grad_gamma_c},...
+    {'c', 'gamma_c', 'sigma'}, {'PSI_grad_gamma_c'});
 
 end

@@ -65,7 +65,7 @@ end
 % log for each step's information
 Log.param       = zeros(continuationStepMaxNum + 1, 2); % [s, sigma]
 Log.cost        = zeros(continuationStepMaxNum + 1, 1);
-Log.KKT_error   = zeros(continuationStepMaxNum + 1, 6); % [primal, dual, dual_scaled, complementary, complementary_scaled, total]
+Log.KKT_error   = zeros(continuationStepMaxNum + 1, 3); % [primal, dual, complementary]
 Log.VI_nat_res  = zeros(continuationStepMaxNum + 1, 1);
 Log.timeElapsed = zeros(continuationStepMaxNum + 1, 1); 
 
@@ -81,12 +81,9 @@ while true
         gamma_h_j = Info_Stage_1.gamma_h;
         gamma_c_j = Info_Stage_1.gamma_c;
         cost_j = Info_Stage_1.cost;
-        KKT_error_primal_j               = Info_Stage_1.KKT_error_primal;
-        KKT_error_dual_j                 = Info_Stage_1.KKT_error_dual;
-        KKT_error_dual_scaled_j          = Info_Stage_1.KKT_error_dual_scaled;
-        KKT_error_complementary_j        = Info_Stage_1.KKT_error_complementary;
-        KKT_error_complementary_scaled_j = Info_Stage_1.KKT_error_complementary_scaled;
-        KKT_error_total_j                = Info_Stage_1.KKT_error_total;
+        KKT_error_p_j = Info_Stage_1.KKT_error_primal;
+        KKT_error_d_j = Info_Stage_1.KKT_error_dual;
+        KKT_error_c_j = Info_Stage_1.KKT_error_complementary;
         VI_nat_res_j = Info_Stage_1.VI_natural_residual;
         time_j = Info_Stage_1.Time.total;
     else
@@ -98,15 +95,14 @@ while true
     % record
     Log.param(j + 1, :) = p_j';
     Log.cost(j + 1, :) = cost_j;
-    Log.KKT_error(j + 1, :) = [KKT_error_primal_j, KKT_error_dual_j, KKT_error_dual_scaled_j,...
-        KKT_error_complementary_j, KKT_error_complementary_scaled_j, KKT_error_total_j];
+    Log.KKT_error(j + 1, :) = [KKT_error_p_j, KKT_error_d_j, KKT_error_c_j];
     Log.VI_nat_res(j + 1, :) = VI_nat_res_j;
     Log.timeElapsed(j + 1, :) = time_j;
 
     % print
     if mod(j, 10) ==  0
         disp('---------------------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = ' StepNum |    s     |   sigma  |   cost   |  KKT(P)  |  KKT(D)  | KKT(D,s) |  KKT(C)  | KKT(C,s) |  KKT(T)  | VI_nat_res |  time(s) |';
+        headMsg = ' StepNum |    s     |   sigma  |   cost   |  KKT(P)  |  KKT(D)  |  KKT(C)  |  KKT(T)  | VI_nat_res |  time(s) |';
         disp(headMsg)
     end
     continuation_Step_Msg = ['  ',...
@@ -117,9 +113,7 @@ while true
         num2str(Log.KKT_error(j + 1, 1), '%10.2e'), ' | ',...
         num2str(Log.KKT_error(j + 1, 2), '%10.2e'), ' | ',...
         num2str(Log.KKT_error(j + 1, 3), '%10.2e'), ' | ',...
-        num2str(Log.KKT_error(j + 1, 4), '%10.2e'), ' | ',...
-        num2str(Log.KKT_error(j + 1, 5), '%10.2e'), ' | ',...
-        num2str(Log.KKT_error(j + 1, 6), '%10.2e'), ' |  ',...
+        num2str(max(Log.KKT_error(j + 1, :)), '%10.2e'), ' | ',...
         num2str(Log.VI_nat_res(j + 1), '%10.2e'),'  |  ',...
         num2str(Log.timeElapsed(j + 1), '%10.4f'),'  | '];
     disp(continuation_Step_Msg)

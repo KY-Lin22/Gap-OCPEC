@@ -42,8 +42,8 @@ classdef CGMRES_Based_Solver
 
         %% stage 1: Non-Interior-Point Method
         % main function of non-interior-point method
-        [z_Opt, Info] = non_interior_point_method(self, z_Init, p)
-        
+        [z_Opt, Info] = non_interior_point_method(self, z_Init, p)        
+
         % evaluate KKT matrix 
         KKT_Matrix = evaluate_KKT_Matrix(self, h_grad, c_grad, LAG_hessian, PSI_grad_c, PSI_grad_gamma_c)
 
@@ -58,8 +58,11 @@ classdef CGMRES_Based_Solver
             J, h, PSI, J_grad)
 
         %% stage 2: CGMRES Method
+        % evaluate KKT residual
+        KKT_Residual = evaluate_KKT_Residual(self, Y, p)
 
-
+        % CGMRES method
+        [Y_dot, Info] = CGMRES_method(self, Y, p, p_dot, Y_dot_Init, h_FD, k_max, epsilon)
 
     end
 

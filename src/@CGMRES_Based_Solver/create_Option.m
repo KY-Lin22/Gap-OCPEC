@@ -41,8 +41,12 @@ Option.Homotopy.VI_nat_res_tol = 1e-2;
 
 % homotopy (FB smoothing parameter)
 Option.Homotopy.sigma_Init = 1e-1;
-Option.Homotopy.sigma_End = 1e-6;
+Option.Homotopy.sigma_End = 1e-3;
 Option.Homotopy.kappa_sigma_times = 0.8;
 Option.Homotopy.kappa_sigma_exp = 1.2;
 
+% CGMRES
+Option.CGMRES.dtau = 0.001; % fictitious time step
+Option.CGMRES.h_FD = 1e-9; % forward difference approximation step
+Option.CGMRES.k_max = 10;
 end

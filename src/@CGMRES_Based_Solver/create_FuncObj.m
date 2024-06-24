@@ -13,6 +13,11 @@ sigma = MX.sym('sigma', 1, 1);
 % vector that collects variable and parameter
 Y = [self.NLP.z; gamma_h; gamma_c];
 p = [self.NLP.s, sigma];
+% dz, dgamma_h, dgamma_c
+dz = MX.sym('dz', self.NLP.Dim.z, 1);
+dgamma_h = MX.sym('dgamma_h', self.NLP.Dim.h, 1);
+dgamma_c = MX.sym('dgamma_c', self.NLP.Dim.c, 1);
+dY = [dz; dgamma_h; dgamma_c];
 
 %% NLP function, Jacobian, and Hessian
 % function
@@ -75,6 +80,9 @@ PSI_grad_gamma_c = jacobian(PSI, gamma_c);
 % constraint violation M
 M = [self.NLP.h; PSI];
 FuncObj.M = Function('M', {Y, p}, {M}, {'Y', 'p'}, {'M'});
+% directional derivative of cost 
+J_grad_times_dz = J_grad * dz;
+FuncObj.J_grad_times_dz = Function('J_grad_times_dz', {Y, dY}, {J_grad_times_dz}, {'Y', 'dY'}, {'J_grad_times_dz'});
 
 %% KKT residual, matrix
 % KKT residual

@@ -40,30 +40,21 @@ while true
     timeStart_KKTEval = tic;
     % KKT residual and matrix
     KKT_residual = full(self.FuncObj.KKT_residual(Y, p));
-    KKT_matrix = sparse(self.FuncObj.KKT_matrix(Y, p));
-    timeElasped_KKTEval = toc(timeStart_KKTEval);
-
-    % some other quantities
-    J = full(self.FuncObj.J(Y(1 : Y_Node(1), 1)));
-    c = full(self.FuncObj.c(Y(1 : Y_Node(1), 1), p(1)));
-    LAG_grad_T = KKT_residual(            1 : Y_Node(1), 1);
-    h          = KKT_residual(Y_Node(1) + 1 : Y_Node(2), 1);
-    PSI        = KKT_residual(Y_Node(2) + 1 : Y_Node(3), 1);    
+    KKT_matrix = sparse(self.FuncObj.KKT_matrix(Y, p));    
     % KKT error
-    [KKT_error_primal, KKT_error_dual, KKT_error_complementary] = self.evaluate_KKT_error(Y, LAG_grad_T, h, c);   
+    KKT_error = norm(KKT_residual, inf); 
+    timeElasped_KKTEval = toc(timeStart_KKTEval);
 
     %% step 2: search direction evaluation based on previous iterate z
     timeStart_SearchDirection = tic;
-
     % solve sparse linear system using mldivide
     dY = KKT_matrix\(-KKT_residual);
     % dYNorm (L_inf norm)
     dYNorm = norm(dY, inf);    
-
     timeElasped_searchDirection = toc(timeStart_SearchDirection);
 
     %% step 3: check whether we can terminate successfully based on the previous iterate z
-    if max([KKT_error_primal, KKT_error_dual, KKT_error_complementary]) < self.Option.NIP.tol.KKT_error_total
+    if KKT_error < self.Option.NIP.tol.KKT_error
         % Success case 1: the KKT error satisfies tolerance
         terminalStatus = 1;
         terminalMsg = ['- Solver succeeds: ', 'because the KKT error satisfies tolerance'];
@@ -72,14 +63,7 @@ while true
         % Success case 2: the norm of search direction satisfies tolerance
         terminalStatus = 1;
         terminalMsg = ['- Solver succeeds: ', 'because the norm of search direction satisfies tolerance'];   
-        break
-    elseif (KKT_error_primal <= self.Option.NIP.tol.KKT_error_primal) && ...
-            (KKT_error_dual <= self.Option.NIP.tol.KKT_error_dual) && ...
-            (KKT_error_complementary <= self.Option.NIP.tol.KKT_error_complementarity)
-        % Success case 3: primal and dual error satisfy individual tolerance
-        terminalStatus = 1;
-        terminalMsg = ['- Solver succeeds: ', 'because primal, dual, and complementarity error satisfy individual tolerance']; 
-        break        
+        break       
     end
 
     %% step 4: merit line search
@@ -104,24 +88,29 @@ while true
     Time.searchDirection = Time.searchDirection + timeElasped_searchDirection;
     Time.lineSearch = Time.lineSearch + timeElasped_lineSearch;
     Time.total = Time.total + timeElasped_total;
+    % some other quantities
+    J = full(self.FuncObj.J(Y(1 : Y_Node(1), 1)));
+    LAG_grad_T = KKT_residual(            1 : Y_Node(1), 1);
+    h          = KKT_residual(Y_Node(1) + 1 : Y_Node(2), 1);
+    PSI        = KKT_residual(Y_Node(2) + 1 : Y_Node(3), 1);  
     if self.Option.NIP.printLevel == 2
         % head
         if mod(k, 10) == 1
-            disp('-----------------------------------------------------------------------------------------------------------------------------------')
-            headMsg = ' Iter |   cost   |  KKT(P)  |  KKT(D)  |  KKT(C)  | PSI(max) |  dYNorm  |   beta   | stepsize |  merit   | merit(t) | time(ms) |';
+            disp('----------------------------------------------------------------------------------------------------------------------')
+            headMsg = ' Iter |   cost   | LAG_grad |    h     |    PSI   |  dYNorm  |   beta   | stepsize |  merit   | merit(t) | time(ms) |';
             disp(headMsg)
         end
         % previous iterate message
         prevIterMsg = ['  ',...
             num2str(k,'%10.3d'),' | ',...
             num2str(J,'%10.2e'), ' | ',...
-            num2str(KKT_error_primal, '%10.2e'), ' | ',...
-            num2str(KKT_error_dual, '%10.2e'), ' | ',...
-            num2str(KKT_error_complementary, '%10.2e'), ' | ',...
+            num2str(norm(LAG_grad_T, inf), '%10.2e'), ' | ',...
+            num2str(norm(h, inf), '%10.2e'), ' | ',...
             num2str(norm(PSI, inf), '%10.2e'), ' | ',...
             num2str(dYNorm,'%10.2e'), ' | ',...
             num2str(beta_k,'%10.2e'), ' | ',...
-            num2str(stepSize,'%10.2e'), ' | ', num2str(merit(2),'%10.2e'), ' | ',...
+            num2str(stepSize,'%10.2e'), ' | ', ...
+            num2str(merit(1),'%10.2e'), ' | ', num2str(merit(2),'%10.2e'), ' | ',...
             num2str(1000 * timeElasped_total,'%10.2e'), ' | '];
         disp(prevIterMsg)
     end
@@ -150,10 +139,8 @@ Info.terminalMsg = terminalMsg;
 Info.gamma_h = gamma_h;
 Info.gamma_c = gamma_c;
 Info.cost = J;
-Info.KKT_error_primal        = KKT_error_primal;
-Info.KKT_error_dual          = KKT_error_dual;
-Info.KKT_error_complementary = KKT_error_complementary;
-Info.VI_natural_residual     = self.evaluate_natural_residual(z);
+Info.KKT_error = KKT_error;
+Info.VI_natural_residual = self.evaluate_natural_residual(z);
 % display termination and solution message, then break rountie
 if (self.Option.NIP.printLevel == 1) || (self.Option.NIP.printLevel == 2)
     disp('*--------------------------------------------- Solution Information ----------------------------------------------*')
@@ -165,9 +152,7 @@ if (self.Option.NIP.printLevel == 1) || (self.Option.NIP.printLevel == 2)
     disp(['- AverageTime: .................. ', num2str(1000 * Info.Time.total /Info.iterNum,'%10.2f'), ' ms/Iter'])
     disp('3. Solution Message')
     disp(['- Cost: ......................... ', num2str(Info.cost,'%10.3e'), '; '])
-    disp(['- KKT (primal): ................. ', num2str(Info.KKT_error_primal, '%10.3e'), '; '])
-    disp(['- KKT (dual): ................... ', num2str(Info.KKT_error_dual, '%10.3e'), '; '])
-    disp(['- KKT (complementary): .......... ', num2str(Info.KKT_error_complementary, '%10.3e'), '; '])  
+    disp(['- KKT error: .................... ', num2str(Info.KKT_error, '%10.3e'), '; '])
     disp(['- VI natural residual: .......... ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
 end
 

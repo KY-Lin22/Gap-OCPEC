@@ -13,25 +13,22 @@ timeStep = self.OCPEC.timeStep;
 
 %% some quantities at current iterate Y
 % directional derivative of cost 
-z  = Y(1 : Y_Node(1), 1);
-dz = dY(1 : Y_Node(1), 1);
-J_grad = full(self.FuncObj.J_grad(z));
-J_DD = J_grad * dz;
+J_grad_times_dz = full(self.FuncObj.J_grad_times_dz(Y, dY));
 % constraint violation M (L1 norm scaled by time step)
 % - L1 norm follows IPOPT, and also the cost is the sum of stage cost
 % - as a constraint measure, it need to be scaled by time step to consistent with the cost that has been scaled
 M = timeStep * norm(full(self.FuncObj.M(Y, p)), 1);
 % penalty parameter
-beta_Trial = J_DD/((1 - rho) * M);
+beta_Trial = J_grad_times_dz/((1 - rho) * M);
 if beta >= beta_Trial
     beta_k = beta;
 else
     beta_k = beta_Trial + 1;
 end
 % merit and its directional derivative
-J = full(self.FuncObj.J(z));
-merit = J + beta_k * M;
-merit_DD = J_DD - beta_k * M;
+z  = Y(1 : Y_Node(1), 1);
+merit = full(self.FuncObj.J(z)) + beta_k * M;
+merit_DD = J_grad_times_dz - beta_k * M;
 
 %% backtracking line search
 has_found_new_iterate = false;
@@ -42,12 +39,11 @@ while ~has_found_new_iterate
      % step size
      stepSize_trial = max([stepSize_init, stepSize_min]);
      % iterate
-     Y_trial = Y + stepSize_trial * dY;
-     z_trial = Y_trial(1 : Y_Node(1), 1);
+     Y_trial = Y + stepSize_trial * dY;     
      % merit
-     J_trial = full(self.FuncObj.J(z_trial));
+     z_trial = Y_trial(1 : Y_Node(1), 1);
      M_trial = timeStep * norm(full(self.FuncObj.M(Y_trial, p)), 1);
-     merit_trial = J_trial + beta_k * M_trial;
+     merit_trial = full(self.FuncObj.J(z_trial)) + beta_k * M_trial;
 
      %% Step 2: check sufficient decrease condition
      if merit_trial <= merit + stepSize_trial * nu_D * merit_DD
@@ -81,7 +77,6 @@ switch status
     case 1
         % success, return the new iterate
         Y_k = Y_trial;
-
         Info.beta = beta_k;
         Info.stepSize = stepSize_trial;
         Info.merit = [merit, merit_trial];

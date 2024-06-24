@@ -8,12 +8,7 @@ Option.NIP.printLevel = 2; % 0: print nothing;
                        % 2: print results and iteration log (should specified recordLevel as 1)
 % tolerance
 Option.NIP.maxIterNum = 200;
-
-Option.NIP.KKT_scaling_max = 1;
-Option.NIP.tol.KKT_error_primal = 1e-3;
-Option.NIP.tol.KKT_error_dual = 1e-3;
-Option.NIP.tol.KKT_error_complementarity = 1e-3;
-Option.NIP.tol.KKT_error_total = 1e-3;
+Option.NIP.tol.KKT_error = 1e-2;
 Option.NIP.tol.dYNorm = 1e-6;
 
 % singularity regularization parameter for KKT matrix 

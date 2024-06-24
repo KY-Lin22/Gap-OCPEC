@@ -44,9 +44,6 @@ classdef CGMRES_Based_Solver
         % main function of non-interior-point method
         [z_Opt, Info] = non_interior_point_method(self, z_Init, p) 
 
-        % evaluate KKT error
-        [KKT_error_primal, KKT_error_dual, KKT_error_complementary] = evaluate_KKT_error(self, Y, LAG_grad_T, h, c)
-
         % merit line search
         [Y_k, Info] = LineSearch_Merit(self, beta, Y, p, dY);
 

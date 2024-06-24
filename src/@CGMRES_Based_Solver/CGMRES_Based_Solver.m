@@ -61,8 +61,14 @@ classdef CGMRES_Based_Solver
         % evaluate KKT residual
         KKT_Residual = evaluate_KKT_Residual(self, Y, p)
 
+        % evaluate sensitivity matrix
+        sensitivity_Matrix = evaluate_sensitivity_Matrix(self, Y, p);
+
         % CGMRES method
         [Y_dot, Info] = CGMRES_method(self, Y, p, p_dot, Y_dot_Init, h_FD, k_max, epsilon)
+
+        % directly solve differential equation
+        [Y_dot, Info] = solve_differential_equation(self, Y, p, p_dot, epsilon)
 
     end
 

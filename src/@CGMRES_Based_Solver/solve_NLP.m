@@ -87,7 +87,7 @@ while true
         p_j = p_Init; 
         % provide initial guess of Y_dot for next iteration
         Y_dot = zeros(Y_Node(3), 1);
-        % solve the first parameterized NLP by non-interior-point method        
+        % solve the first parameterized NLP by non-interior-point method (option: use IPOPT)        
         [z_j, Info_NIP] = self.non_interior_point_method(z_Init, p_j);
         gamma_h_j = Info_NIP.gamma_h;
         gamma_c_j = Info_NIP.gamma_c;
@@ -105,7 +105,8 @@ while true
         % compute time derivative p_dot in previous fictitious time tau by finite difference
         p_dot = (p_j - p)/dtau;
         % compute time derivative Y_dot in previous fictitious time tau by CGMRES method 
-        [Y_dot, Info_CGMRES] = self.CGMRES_method(Y, p, p_dot, Y_dot_Init, h_FD, k_max, epsilon);
+        % [Y_dot, Info_CGMRES] = self.CGMRES_method(Y, p, p_dot, Y_dot_Init, h_FD, k_max, epsilon);
+        [Y_dot, Info_CGMRES] = self.solve_differential_equation(Y, p, p_dot, epsilon);
         % evaluate new iterate by integrating a differential equation with explicit Euler method
         Y_j = Y + dtau * Y_dot;
         % extract primal and dual variable

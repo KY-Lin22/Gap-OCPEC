@@ -50,4 +50,18 @@ FuncObj.PSI_grad_c = Function('PSI_grad_c', {c, gamma_c, sigma}, {PSI_grad_c},..
 FuncObj.PSI_grad_gamma_c = Function('PSI_grad_gamma_c', {c, gamma_c, sigma}, {PSI_grad_gamma_c},...
     {'c', 'gamma_c', 'sigma'}, {'PSI_grad_gamma_c'});
 
+%% sensitivity (w.r.t. s)
+% inequality
+c_sensitivity = jacobian(NLP.c, NLP.s);
+FuncObj.c_sensitivity = Function('c_sensitivity', {NLP.z, NLP.s}, {c_sensitivity}, {'z', 's'}, {'c_sensitivity'});
+
+% lagrangian
+gamma_c_mx = MX.sym('gamma_c', NLP.Dim.c, 1);
+LAG_grad_z_T_sensitivity = jacobian(-c_grad'*gamma_c_mx, NLP.s);
+FuncObj.LAG_grad_z_T_sensitivity = Function('LAG_grad_z_T_sensitivity', {NLP.z, gamma_c_mx, NLP.s}, {LAG_grad_z_T_sensitivity},...
+    {'z', 'gamma_c', 's'}, {'LAG_grad_z_T_sensitivity'});
+% FB
+PSI_sensitivity = jacobian(PSI, sigma);
+FuncObj.PSI_sensitivity = Function('PSI_sensitivity', {c, gamma_c, sigma}, {PSI_sensitivity},...
+    {'c', 'gamma_c', 'sigma'}, {'PSI_sensitivity'});
 end

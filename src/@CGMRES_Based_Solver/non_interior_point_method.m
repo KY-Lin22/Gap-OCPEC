@@ -16,29 +16,19 @@ function [z_Opt, Info] = non_interior_point_method(self, z_Init, p)
 % Output:
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information
-%
-%% iteration routine (z: previous iterate z_{k-1}, z_k: current iterate z_{k}) 
+%% iteration routine (Y: previous iterate Y_{k-1}, Y_k: current iterate Y_{k}) 
 % time record
-Time = struct('gradEval', 0, 'KKTEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
-% Y node (z, gamma_h, gamma_c)
-Y_Node = cumsum([self.NLP.Dim.z, self.NLP.Dim.h, self.NLP.Dim.c]);
-% extract parameter
-s = p(1);
-sigma = p(2);
-% counter, beta, z, multipler, cost and constraint function
+Time = struct('KKTEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
+% counter, beta and iterate
 k = 1;
-beta = self.Option.LineSearch.betaInit;
-z = z_Init;
-gamma_h = ones(self.NLP.Dim.h, 1);
-gamma_c = ones(self.NLP.Dim.c, 1);
-J = full(self.FuncObj.J(z));
-h = full(self.FuncObj.h(z));
-c = full(self.FuncObj.c(z, s));
+beta = self.Option.NIP.LineSearch.beta_Init;
+Y = [z_Init; ones(self.NLP.Dim.h, 1); ones(self.NLP.Dim.c, 1)];
+Y_Node = cumsum([self.NLP.Dim.z, self.NLP.Dim.h, self.NLP.Dim.c]);
 
 % iteration loop
 while true
     %% step 0: check iteration counter
-    if k > self.Option.maxIterNum
+    if k > self.Option.NIP.maxIterNum
         % failure case 1: exceed the maximum number of iteration
         terminalStatus = 0;
         terminalMsg = ['- Solver fails: ', 'because the maximum number of iteration exceeded'];
@@ -46,78 +36,54 @@ while true
     end
     timeStart_total = tic;
 
-    %% step 1: Jacobian and Hessian of previous iterate z
-    timeStart_gradEval = tic;
-    % cost and constraint Jacobian
-    J_grad = full(self.FuncObj.J_grad(z));
-    h_grad = sparse(self.FuncObj.h_grad(z));
-    c_grad = sparse(self.FuncObj.c_grad(z, s));
-    % Lagrangian Hessian
-    switch self.Option.HessianApproximation
-        case 'Gauss_Newton'
-        LAG_hessian = sparse(self.FuncObj.J_hessian(z));    
-        otherwise
-            error('specified Hessian approximation method is not supported')
-    end
-    % smooth FB function and its gradient
-    PSI = full(self.FuncObj.PSI(c, gamma_c, sigma));
-    PSI_grad_c = sparse(self.FuncObj.PSI_grad_c(c, gamma_c, sigma));
-    PSI_grad_gamma_c = sparse(self.FuncObj.PSI_grad_gamma_c(c, gamma_c, sigma));
-
-    timeElasped_gradEval = toc(timeStart_gradEval);
-
-    %% step 2: KKT residual, matrix, and error of previous iterate z
+    %% step 1: KKT residual, matrix, and error of previous iterate z
     timeStart_KKTEval = tic;
-    % KKT residual
-    LAG_grad_z = J_grad + gamma_h' * h_grad - gamma_c' * c_grad;
-    KKT_Residual = [LAG_grad_z'; h; PSI]; 
-
-    % KKT matrix
-    KKT_Matrix = self.evaluate_KKT_Matrix(h_grad, c_grad, LAG_hessian, PSI_grad_c, PSI_grad_gamma_c);
-
-    % KKT error
-    [KKT_error_primal, KKT_error_dual, KKT_error_complementary] = ...
-        self.evaluate_KKT_error(gamma_h, gamma_c, h, c, LAG_grad_z);
-
+    % KKT residual and matrix
+    KKT_residual = full(self.FuncObj.KKT_residual(Y, p));
+    KKT_matrix = sparse(self.FuncObj.KKT_matrix(Y, p));
     timeElasped_KKTEval = toc(timeStart_KKTEval);
 
-    %% step 3: search direction evaluation based on previous iterate z
-    timeStart_SearchDirection = tic; 
+    % some other quantities
+    J = full(self.FuncObj.J(Y(1 : Y_Node(1), 1)));
+    c = full(self.FuncObj.c(Y(1 : Y_Node(1), 1), p(1)));
+    LAG_grad_T = KKT_residual(            1 : Y_Node(1), 1);
+    h          = KKT_residual(Y_Node(1) + 1 : Y_Node(2), 1);
+    PSI        = KKT_residual(Y_Node(2) + 1 : Y_Node(3), 1);    
+    % KKT error
+    [KKT_error_primal, KKT_error_dual, KKT_error_complementary] = self.evaluate_KKT_error(Y, LAG_grad_T, h, c);   
+
+    %% step 2: search direction evaluation based on previous iterate z
+    timeStart_SearchDirection = tic;
+
     % solve sparse linear system using mldivide
-    dY = KKT_Matrix\(-KKT_Residual); 
-    % extract search direction
-    dz       = dY(            1 : Y_Node(1), 1);
-    dgamma_h = dY(Y_Node(1) + 1 : Y_Node(2), 1);
-    dgamma_c = dY(Y_Node(2) + 1 : Y_Node(3), 1);
+    dY = KKT_matrix\(-KKT_residual);
     % dYNorm (L_inf norm)
-    dYNorm = norm(dY, inf);
+    dYNorm = norm(dY, inf);    
+
     timeElasped_searchDirection = toc(timeStart_SearchDirection);
 
-    %% step 4: check whether we can terminate successfully based on the previous iterate z
-    if max([KKT_error_primal, KKT_error_dual, KKT_error_complementary]) < self.Option.tol.KKT_error_total
+    %% step 3: check whether we can terminate successfully based on the previous iterate z
+    if max([KKT_error_primal, KKT_error_dual, KKT_error_complementary]) < self.Option.NIP.tol.KKT_error_total
         % Success case 1: the KKT error satisfies tolerance
         terminalStatus = 1;
         terminalMsg = ['- Solver succeeds: ', 'because the KKT error satisfies tolerance'];
         break
-    elseif dYNorm < self.Option.tol.dYNorm
+    elseif dYNorm < self.Option.NIP.tol.dYNorm
         % Success case 2: the norm of search direction satisfies tolerance
         terminalStatus = 1;
         terminalMsg = ['- Solver succeeds: ', 'because the norm of search direction satisfies tolerance'];   
         break
-    elseif (KKT_error_primal <= self.Option.tol.KKT_error_primal) && ...
-            (KKT_error_dual <= self.Option.tol.KKT_error_dual) && ...
-            (KKT_error_complementary <= self.Option.tol.KKT_error_complementarity)
+    elseif (KKT_error_primal <= self.Option.NIP.tol.KKT_error_primal) && ...
+            (KKT_error_dual <= self.Option.NIP.tol.KKT_error_dual) && ...
+            (KKT_error_complementary <= self.Option.NIP.tol.KKT_error_complementarity)
         % Success case 3: primal and dual error satisfy individual tolerance
         terminalStatus = 1;
         terminalMsg = ['- Solver succeeds: ', 'because primal, dual, and complementarity error satisfy individual tolerance']; 
         break        
     end
 
-    %% step 5: merit line search
-    [z_k, gamma_h_k, gamma_c_k, Info_LineSearch] = self.LineSearch_Merit(...
-        beta, s, sigma, ...
-        z, gamma_h, gamma_c, dz, dgamma_h, dgamma_c, ...
-        J, h, PSI, J_grad);
+    %% step 4: merit line search
+    [Y_k, Info_LineSearch] = self.LineSearch_Merit(beta, Y, p, dY);
     % check status
     if Info_LineSearch.status == 0
         % failure case 2: line search fails
@@ -125,29 +91,23 @@ while true
         terminalMsg = ['- Solver fails: ', 'because merit line search reaches the min stepsize'];        
         break
     else
-        % extract quantities (J, h, c) associated with z_k
-        J_k = Info_LineSearch.J;
-        h_k = Info_LineSearch.h;
-        c_k = Info_LineSearch.c;
         % line search quantities
-        beta_k = Info_LineSearch.beta;
+        beta_k   = Info_LineSearch.beta;
         stepSize = Info_LineSearch.stepSize;
         merit    = Info_LineSearch.merit;
-    end    
+    end
     timeElasped_lineSearch = Info_LineSearch.time;
 
-    %% step 6: record and print information of this iteration k
+    %% step 5: record and print information of this iteration k
     timeElasped_total = toc(timeStart_total);
-    Time.gradEval = Time.gradEval + timeElasped_gradEval;
     Time.KKTEval = Time.KKTEval + timeElasped_KKTEval;
     Time.searchDirection = Time.searchDirection + timeElasped_searchDirection;
     Time.lineSearch = Time.lineSearch + timeElasped_lineSearch;
     Time.total = Time.total + timeElasped_total;
-    % print
-    if self.Option.printLevel == 2
+    if self.Option.NIP.printLevel == 2
         % head
         if mod(k, 10) == 1
-            disp('----------------------------------------------------------------------------------------------------------------------------------------------------')
+            disp('-----------------------------------------------------------------------------------------------------------------------------------')
             headMsg = ' Iter |   cost   |  KKT(P)  |  KKT(D)  |  KKT(C)  | PSI(max) |  dYNorm  |   beta   | stepsize |  merit   | merit(t) | time(ms) |';
             disp(headMsg)
         end
@@ -161,29 +121,27 @@ while true
             num2str(norm(PSI, inf), '%10.2e'), ' | ',...
             num2str(dYNorm,'%10.2e'), ' | ',...
             num2str(beta_k,'%10.2e'), ' | ',...
-            num2str(stepSize,'%10.2e'), ' | ',...
-            num2str(merit(1),'%10.2e'), ' | ',...
-            num2str(merit(2),'%10.2e'), ' | ',...
+            num2str(stepSize,'%10.2e'), ' | ', num2str(merit(2),'%10.2e'), ' | ',...
             num2str(1000 * timeElasped_total,'%10.2e'), ' | '];
         disp(prevIterMsg)
     end
-    %% step 7: prepare next iteration
+
+    %% step 6: prepare next iteration
     k = k + 1;
     beta = beta_k;
-    z = z_k;
-    gamma_h = gamma_h_k;
-    gamma_c = gamma_c_k;
-    J = J_k;
-    h = h_k;
-    c = c_k; 
+    Y = Y_k;
 
 end
 
 %% return optimal solution and create information
+% extract primal and dual variable
+z       = Y(            1 : Y_Node(1), 1);
+gamma_h = Y(Y_Node(1) + 1 : Y_Node(2), 1);
+gamma_c = Y(Y_Node(2) + 1 : Y_Node(3), 1);
 % return previous iterate as solution
 z_Opt = z;
 % create Info (basic: time, iterNum, terminalStatus)
-Time.else = Time.total - Time.searchDirection - Time.lineSearch - Time.KKTEval - Time.gradEval;
+Time.else = Time.total - Time.searchDirection - Time.lineSearch - Time.KKTEval;
 Info.Time = Time;
 Info.iterNum = k - 1;
 Info.terminalStatus = terminalStatus;
@@ -197,7 +155,7 @@ Info.KKT_error_dual          = KKT_error_dual;
 Info.KKT_error_complementary = KKT_error_complementary;
 Info.VI_natural_residual     = self.evaluate_natural_residual(z);
 % display termination and solution message, then break rountie
-if (self.Option.printLevel == 1) || (self.Option.printLevel == 2)
+if (self.Option.NIP.printLevel == 1) || (self.Option.NIP.printLevel == 2)
     disp('*--------------------------------------------- Solution Information ----------------------------------------------*')
     disp('1. Terminal Status')
     disp(Info.terminalMsg)

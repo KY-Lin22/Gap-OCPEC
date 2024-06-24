@@ -24,51 +24,37 @@ classdef CGMRES_Based_Solver
             self.OCPEC = OCPEC;
             self.NLP = NLP;           
             self.Option = Option; 
-            self.FuncObj = self.create_FuncObj(NLP); 
+            self.FuncObj = self.create_FuncObj(); 
             disp('Done!')
         end
     end
 
     %% Other method
     methods
+        %% basic method
         % create function Object
-        FuncObj = create_FuncObj(self, NLP) 
+        FuncObj = create_FuncObj(self) 
 
-        % main function of solver combining non-interior-point and CGMRES method
-        [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
+        % main function of solver that combines non-interior-point method and CGMRES method
 
         % evaluate natural residual
         natRes = evaluate_natural_residual(self, z_Opt)
 
         %% stage 1: Non-Interior-Point Method
         % main function of non-interior-point method
-        [z_Opt, Info] = non_interior_point_method(self, z_Init, p)        
-
-        % evaluate KKT matrix 
-        KKT_Matrix = evaluate_KKT_Matrix(self, h_grad, c_grad, LAG_hessian, PSI_grad_c, PSI_grad_gamma_c)
+        [z_Opt, Info] = non_interior_point_method(self, z_Init, p) 
 
         % evaluate KKT error
-        [KKT_error_primal, KKT_error_dual, KKT_error_complementary] = ...
-            evaluate_KKT_error(self, gamma_h, gamma_c, h, c, LAG_grad_z)
+        [KKT_error_primal, KKT_error_dual, KKT_error_complementary] = evaluate_KKT_error(self, Y, LAG_grad_T, h, c)
 
         % merit line search
-        [z_k, gamma_h_k, gamma_c_k, Info] = LineSearch_Merit(self,...
-            beta, s, sigma, ...
-            z, gamma_h, gamma_c, dz, dgamma_h, dgamma_c, ...
-            J, h, PSI, J_grad)
+        [Y_k, Info] = LineSearch_Merit(self, beta, Y, p, dY);
 
-        %% stage 2: CGMRES Method
-        % evaluate KKT residual
-        KKT_Residual = evaluate_KKT_Residual(self, Y, p)
+        %% stage 2: C/GMRES Method 
+        
 
-        % evaluate sensitivity matrix
-        sensitivity_Matrix = evaluate_sensitivity_Matrix(self, Y, p);
+        %% backup method for C/GMRES Method (through the lens of dynamical system)
 
-        % CGMRES method
-        [Y_dot, Info] = CGMRES_method(self, Y, p, p_dot, Y_dot_Init, h_FD, k_max, epsilon)
-
-        % directly solve differential equation
-        [Y_dot, Info] = solve_differential_equation(self, Y, p, p_dot, epsilon)
 
     end
 

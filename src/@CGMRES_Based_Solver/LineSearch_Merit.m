@@ -1,24 +1,26 @@
-function [z_k, gamma_h_k, gamma_c_k, Info] = LineSearch_Merit(self,...
-    beta, s, sigma, ...
-    z, gamma_h, gamma_c, dz, dgamma_h, dgamma_c, ...
-    J, h, PSI, J_grad)
-%UNTITLED11 Summary of this function goes here
+function [Y_k, Info] = LineSearch_Merit(self, beta, Y, p, dY)
+%UNTITLED22 Summary of this function goes here
 %   Detailed explanation goes here
 timeStart = tic;
 
+Y_Node = cumsum([self.NLP.Dim.z, self.NLP.Dim.h, self.NLP.Dim.c]);
 % load parameter
-stepSize_min = self.Option.LineSearch.stepSize_Min;
-stepSize_decayRate = self.Option.LineSearch.stepSize_DecayRate;
-rho = self.Option.LineSearch.rho;
-nu_D = self.Option.LineSearch.nu_D;
+stepSize_min = self.Option.NIP.LineSearch.stepSize_Min;
+stepSize_decayRate = self.Option.NIP.LineSearch.stepSize_DecayRate;
+rho = self.Option.NIP.LineSearch.rho;
+nu_D = self.Option.NIP.LineSearch.nu_D;
+timeStep = self.OCPEC.timeStep;
 
-%% some quantities at current iterate z
-% directional derivative of cost
+%% some quantities at current iterate Y
+% directional derivative of cost 
+z  = Y(1 : Y_Node(1), 1);
+dz = dY(1 : Y_Node(1), 1);
+J_grad = full(self.FuncObj.J_grad(z));
 J_DD = J_grad * dz;
 % constraint violation M (L1 norm scaled by time step)
 % - L1 norm follows IPOPT, and also the cost is the sum of stage cost
 % - as a constraint measure, it need to be scaled by time step to consistent with the cost that has been scaled
-M = self.OCPEC.timeStep * norm([h; PSI], 1);
+M = timeStep * norm(full(self.FuncObj.M(Y, p)), 1);
 % penalty parameter
 beta_Trial = J_DD/((1 - rho) * M);
 if beta >= beta_Trial
@@ -26,7 +28,8 @@ if beta >= beta_Trial
 else
     beta_k = beta_Trial + 1;
 end
-% merit and its directional derivative 
+% merit and its directional derivative
+J = full(self.FuncObj.J(z));
 merit = J + beta_k * M;
 merit_DD = J_DD - beta_k * M;
 
@@ -35,21 +38,15 @@ has_found_new_iterate = false;
 stepSize_init = 1;
 
 while ~has_found_new_iterate
-     %% Step 1: estimate trial stepsize, iterate, cost, infeasibility and merit
-     % step size, z, multiplier
+     %% Step 1: estimate trial stepsize, iterate, and merit
+     % step size
      stepSize_trial = max([stepSize_init, stepSize_min]);
-     z_trial       = z       + stepSize_trial * dz;
-     gamma_h_trial = gamma_h + stepSize_trial * dgamma_h;
-     gamma_c_trial = gamma_c + stepSize_trial * dgamma_c;
-     % cost and constraint
-     J_trial = full(self.FuncObj.J(z_trial));
-     h_trial = full(self.FuncObj.h(z_trial));
-     c_trial = full(self.FuncObj.c(z_trial, s));
-     % FB function
-     PSI_trial = full(self.FuncObj.PSI(c_trial, gamma_c_trial, sigma));
-     % constraint infeasibility
-     M_trial = self.OCPEC.timeStep * norm([h_trial; PSI_trial], 1);
+     % iterate
+     Y_trial = Y + stepSize_trial * dY;
+     z_trial = Y_trial(1 : Y_Node(1), 1);
      % merit
+     J_trial = full(self.FuncObj.J(z_trial));
+     M_trial = timeStep * norm(full(self.FuncObj.M(Y_trial, p)), 1);
      merit_trial = J_trial + beta_k * M_trial;
 
      %% Step 2: check sufficient decrease condition
@@ -68,7 +65,7 @@ while ~has_found_new_iterate
             % estimate a smaller stepsize
             stepSize_init = stepSize_decayRate * stepSize_init;
         end
-    end 
+    end
 
 end
 
@@ -80,18 +77,11 @@ Info.time = timeElapsed;
 switch status
     case 0
         % fail, return the previous one
-        z_k       = z;
-        gamma_h_k = gamma_h;
-        gamma_c_k = gamma_c;            
+        Y_k = Y;           
     case 1
         % success, return the new iterate
-        z_k       = z_trial;
-        gamma_h_k = gamma_h_trial;
-        gamma_c_k = gamma_c_trial;
-        
-        Info.J = J_trial;
-        Info.h = h_trial;
-        Info.c = c_trial;
+        Y_k = Y_trial;
+
         Info.beta = beta_k;
         Info.stepSize = stepSize_trial;
         Info.merit = [merit, merit_trial];

@@ -42,7 +42,7 @@ LAG = self.NLP.J + gamma_h' * self.NLP.h - gamma_c' * self.NLP.c;
 % jacobian
 LAG_grad = jacobian(LAG, self.NLP.z); % or LAG_grad = J_grad + gamma_h' * h_grad - gamma_c' * c_grad;
 % Hessian
-switch self.Option.KKT.HessianApproximation
+switch self.Option.KKT.Hessian_approximation
     case 'Exact'
         % exact Hessian        
         [LAG_hessian, ~] = hessian(LAG, self.NLP.z);

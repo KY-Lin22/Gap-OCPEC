@@ -36,21 +36,27 @@ classdef CGMRES_Based_Solver
         FuncObj = create_FuncObj(self) 
 
         % main function of solver that combines non-interior-point method and CGMRES method
+        [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
 
         % evaluate natural residual
         natRes = evaluate_natural_residual(self, z_Opt)
 
-        %% stage 1: Non-Interior-Point Method
-        % main function of non-interior-point method
+        %% stage 1: solve first parameterized NLP
+        % main function of solving first parameterized NLP
+        [Y, Info] = solve_first_NLP(self, z_Init, p)
+
+        % non-interior-point method
         [z_Opt, Info] = non_interior_point_method(self, z_Init, p) 
 
-        % merit line search
+        % merit line search in non-interior-point method
         [Y_k, Info] = LineSearch_Merit(self, beta, Y, p, dY);
 
-        %% stage 2: C/GMRES Method 
-        
+        %% stage 2: solve differential equation
+        % main function of solving differential equation
+        [Y_dot, Info] = solve_differential_equation(self, Y, p, p_dot, Y_dot_Init, epsilon)
 
-        %% backup method for C/GMRES Method (through the lens of dynamical system)
+        % FDGMRES method
+
 
 
     end

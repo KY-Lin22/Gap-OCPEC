@@ -19,6 +19,11 @@ dgamma_h = MX.sym('dgamma_h', self.NLP.Dim.h, 1);
 dgamma_c = MX.sym('dgamma_c', self.NLP.Dim.c, 1);
 dY = [dz; dgamma_h; dgamma_c];
 
+%% IPOPT solver for solving the first parameterized NLP
+NLP_Prob = struct('x', self.NLP.z, 'f', self.NLP.J, 'g', [self.NLP.h; self.NLP.c], 'p', self.NLP.s); 
+IPOPT_Option = self.Option.IPOPT_Solver;
+FuncObj.IPOPT_Solver = nlpsol('Solver', 'ipopt', NLP_Prob, IPOPT_Option);
+
 %% NLP function, Jacobian, and Hessian
 % function
 FuncObj.J = Function('J', {self.NLP.z}, {self.NLP.J}, {'z'}, {'J'});

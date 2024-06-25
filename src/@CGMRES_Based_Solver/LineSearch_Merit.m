@@ -31,10 +31,8 @@ merit = full(self.FuncObj.J(z)) + beta_k * M;
 merit_DD = J_grad_times_dz - beta_k * M;
 
 %% backtracking line search
-has_found_new_iterate = false;
 stepSize_init = 1;
-
-while ~has_found_new_iterate
+while true
      %% Step 1: estimate trial stepsize, iterate, and merit
      % step size
      stepSize_trial = max([stepSize_init, stepSize_min]);
@@ -47,21 +45,19 @@ while ~has_found_new_iterate
 
      %% Step 2: check sufficient decrease condition
      if merit_trial <= merit + stepSize_trial * nu_D * merit_DD
-         has_found_new_iterate = true;
          status = 1;
+         break
      end
 
      %% Step 3: checking min stepsize
-    if ~has_found_new_iterate
-        if stepSize_trial == stepSize_min
-            % linesearch fails on the min stepsize, break backtracking linesearch procedure
-            status = 0;
-            break
-        else
-            % estimate a smaller stepsize
-            stepSize_init = stepSize_decayRate * stepSize_init;
-        end
-    end
+     if stepSize_trial == stepSize_min
+         % fails to satisfy sufficient decrease condition with min stepsize, break backtracking linesearch
+         status = 0;
+         break
+     else
+         % estimate a smaller stepsize
+         stepSize_init = stepSize_decayRate * stepSize_init;
+     end
 
 end
 

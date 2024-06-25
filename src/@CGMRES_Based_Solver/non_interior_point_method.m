@@ -18,7 +18,7 @@ function [z_Opt, Info] = non_interior_point_method(self, z_Init, p)
 %          Info: struct, record the iteration information
 %% iteration routine (Y: previous iterate Y_{k-1}, Y_k: current iterate Y_{k}) 
 % time record
-Time = struct('KKTEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
+Time = struct('KKT', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
 % counter, beta and iterate
 k = 1;
 beta = self.Option.NIP.LineSearch.beta_Init;
@@ -30,20 +30,20 @@ while true
     %% step 0: check iteration counter
     if k > self.Option.NIP.maxIterNum
         % failure case 1: exceed the maximum number of iteration
-        terminalStatus = 0;
-        terminalMsg = ['- Solver fails: ', 'because the maximum number of iteration exceeded'];
+        terminal_status = 0;
+        terminal_msg = ['- Solver fails: ', 'because the maximum number of iteration exceeded'];
         break
     end
     timeStart_total = tic;
 
     %% step 1: KKT residual, matrix, and error of previous iterate z
-    timeStart_KKTEval = tic;
+    timeStart_KKT = tic;
     % KKT residual and matrix
     KKT_residual = full(self.FuncObj.KKT_residual(Y, p));
     KKT_matrix = sparse(self.FuncObj.KKT_matrix(Y, p));    
     % KKT error
     KKT_error = norm(KKT_residual, inf); 
-    timeElasped_KKTEval = toc(timeStart_KKTEval);
+    timeElasped_KKT = toc(timeStart_KKT);
 
     %% step 2: search direction evaluation based on previous iterate z
     timeStart_SearchDirection = tic;
@@ -56,13 +56,13 @@ while true
     %% step 3: check whether we can terminate successfully based on the previous iterate z
     if KKT_error < self.Option.NIP.tol.KKT_error
         % Success case 1: the KKT error satisfies tolerance
-        terminalStatus = 1;
-        terminalMsg = ['- Solver succeeds: ', 'because the KKT error satisfies tolerance'];
+        terminal_status = 1;
+        terminal_msg = ['- Solver succeeds: ', 'because the KKT error satisfies tolerance'];
         break
     elseif dYNorm < self.Option.NIP.tol.dYNorm
         % Success case 2: the norm of search direction satisfies tolerance
-        terminalStatus = 1;
-        terminalMsg = ['- Solver succeeds: ', 'because the norm of search direction satisfies tolerance'];   
+        terminal_status = 1;
+        terminal_msg = ['- Solver succeeds: ', 'because the norm of search direction satisfies tolerance'];   
         break       
     end
 
@@ -71,8 +71,8 @@ while true
     % check status
     if Info_LineSearch.status == 0
         % failure case 2: line search fails
-        terminalStatus = -1;
-        terminalMsg = ['- Solver fails: ', 'because merit line search reaches the min stepsize'];        
+        terminal_status = -1;
+        terminal_msg = ['- Solver fails: ', 'because merit line search reaches the min stepsize'];        
         break
     else
         % line search quantities
@@ -84,7 +84,7 @@ while true
 
     %% step 5: record and print information of this iteration k
     timeElasped_total = toc(timeStart_total);
-    Time.KKTEval = Time.KKTEval + timeElasped_KKTEval;
+    Time.KKT = Time.KKT + timeElasped_KKT;
     Time.searchDirection = Time.searchDirection + timeElasped_searchDirection;
     Time.lineSearch = Time.lineSearch + timeElasped_lineSearch;
     Time.total = Time.total + timeElasped_total;
@@ -130,11 +130,11 @@ gamma_c = Y(Y_Node(2) + 1 : Y_Node(3), 1);
 % return previous iterate as solution
 z_Opt = z;
 % create Info (basic: time, iterNum, terminalStatus)
-Time.else = Time.total - Time.searchDirection - Time.lineSearch - Time.KKTEval;
+Time.else = Time.total - Time.searchDirection - Time.lineSearch - Time.KKT;
 Info.Time = Time;
 Info.iterNum = k - 1;
-Info.terminalStatus = terminalStatus;
-Info.terminalMsg = terminalMsg;
+Info.terminal_status = terminal_status;
+Info.terminal_msg = terminal_msg;
 % create Info (corresponds to the solution z_Opt: dual variable, cost, KKT, natural residual)
 Info.gamma_h = gamma_h;
 Info.gamma_c = gamma_c;
@@ -145,7 +145,7 @@ Info.VI_natural_residual = self.evaluate_natural_residual(z);
 if (self.Option.NIP.printLevel == 1) || (self.Option.NIP.printLevel == 2)
     disp('*--------------------------------------------- Solution Information ----------------------------------------------*')
     disp('1. Terminal Status')
-    disp(Info.terminalMsg)
+    disp(Info.terminal_msg)
     disp('2. Iteration Process Message')
     disp(['- Iterations: ................... ', num2str(Info.iterNum)])
     disp(['- TimeElapsed: .................. ', num2str(Info.Time.total,'%10.3f'), 's'])

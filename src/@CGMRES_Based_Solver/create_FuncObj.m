@@ -42,7 +42,7 @@ LAG = self.NLP.J + gamma_h' * self.NLP.h - gamma_c' * self.NLP.c;
 % jacobian
 LAG_grad = jacobian(LAG, self.NLP.z); % or LAG_grad = J_grad + gamma_h' * h_grad - gamma_c' * c_grad;
 % Hessian
-switch self.Option.NIP.HessianApproximation
+switch self.Option.KKT.HessianApproximation
     case 'Exact'
         % exact Hessian        
         [LAG_hessian, ~] = hessian(LAG, self.NLP.z);
@@ -69,7 +69,7 @@ PSI = psi_FuncObj(self.NLP.c, gamma_c, sigma);
 PSI_grad_z = jacobian(PSI, self.NLP.z);
 PSI_grad_gamma_c = jacobian(PSI, gamma_c);
 
-%% line search
+%% line search in non-interior-point method
 % constraint violation M
 M = [self.NLP.h; PSI];
 FuncObj.M = Function('M', {Y, p}, {M}, {'Y', 'p'}, {'M'});
@@ -77,14 +77,14 @@ FuncObj.M = Function('M', {Y, p}, {M}, {'Y', 'p'}, {'M'});
 J_grad_times_dz = J_grad * dz;
 FuncObj.J_grad_times_dz = Function('J_grad_times_dz', {Y, dY}, {J_grad_times_dz}, {'Y', 'dY'}, {'J_grad_times_dz'});
 
-%% KKT residual, matrix
+%% KKT residual and matrix
 % KKT residual
 KKT_residual = [LAG_grad'; self.NLP.h; PSI];
 FuncObj.KKT_residual = Function('KKT_residual', {Y, p}, {KKT_residual}, {'Y', 'p'}, {'KKT_residual'});
 % KKT matrix
-nu_h = self.Option.NIP.RegParam.nu_h;
-nu_c = self.Option.NIP.RegParam.nu_c;
-nu_H = self.Option.NIP.RegParam.nu_H;
+nu_h = self.Option.KKT.RegParam.nu_h;
+nu_c = self.Option.KKT.RegParam.nu_c;
+nu_H = self.Option.KKT.RegParam.nu_H;
 KKT_matrix = ...
     [LAG_hessian + nu_H * MX.eye(self.NLP.Dim.z), h_grad',                            -c_grad';...
     h_grad,                                       -nu_h * MX.eye(self.NLP.Dim.h),     MX(self.NLP.Dim.h, self.NLP.Dim.c);...
@@ -94,11 +94,9 @@ FuncObj.KKT_matrix = Function('KKT_matrix', {Y, p}, {KKT_matrix}, {'Y', 'p'}, {'
 %% sensitivity matrix (w.r.t. parameter)
 % lagrangian gradient (w.r.t. s)
 LAG_grad_sensitivity = jacobian(LAG_grad, self.NLP.s);
-
 % PSI (w.r.t. s and sigma)
 PSI_sensitivity_s = jacobian(PSI, self.NLP.s);
 PSI_sensitivity_sigma = jacobian(PSI, sigma);
-
 % formulate sensitivity matrix
 sensitivity_matrix = ...
     [LAG_grad_sensitivity,  MX(self.NLP.Dim.z, 1);...

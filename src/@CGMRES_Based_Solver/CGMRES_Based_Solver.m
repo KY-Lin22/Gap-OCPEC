@@ -1,4 +1,4 @@
-classdef CGMRES_Based_Solver
+classdef CGMRES_Based_Solver < handle
     %Implementation of solver that combines non-interior-point and C/GMRES method which solves the following NLP problem:
     %  min  J(z),
     %  s.t. h(z) = 0,

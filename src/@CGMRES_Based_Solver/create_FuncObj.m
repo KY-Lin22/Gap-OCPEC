@@ -33,22 +33,14 @@ FuncObj.c = Function('c', {self.NLP.z, self.NLP.s}, {self.NLP.c}, {'z', 's'}, {'
 J_grad = jacobian(self.NLP.J, self.NLP.z); 
 h_grad = jacobian(self.NLP.h, self.NLP.z);
 c_grad = jacobian(self.NLP.c, self.NLP.z);
-FuncObj.J_grad = Function('J_grad', {self.NLP.z}, {J_grad}, {'z'}, {'J_grad'});
-FuncObj.h_grad = Function('h_grad', {self.NLP.z}, {h_grad}, {'z'}, {'h_grad'});
-FuncObj.c_grad = Function('c_grad', {self.NLP.z, self.NLP.s}, {c_grad}, {'z', 's'}, {'c_grad'});
 % Hessian
 [J_hessian, ~] = hessian(self.NLP.J, self.NLP.z);
-FuncObj.J_hessian = Function('J_hessian', {self.NLP.z}, {J_hessian}, {'z'}, {'J_hessian'});
 
 %% NLP Lagrangian
 % function
 LAG = self.NLP.J + gamma_h' * self.NLP.h - gamma_c' * self.NLP.c;
-FuncObj.LAG = Function('LAG', {self.NLP.z, gamma_h, gamma_c, self.NLP.s}, {LAG},...
-    {'z', 'gamma_h', 'gamma_c', 's'}, {'LAG'});
 % jacobian
 LAG_grad = jacobian(LAG, self.NLP.z); % or LAG_grad = J_grad + gamma_h' * h_grad - gamma_c' * c_grad;
-FuncObj.LAG_grad = Function('LAG_grad', {self.NLP.z, gamma_h, gamma_c, self.NLP.s}, {LAG_grad},...
-    {'z', 'gamma_h', 'gamma_c', 's'}, {'LAG_grad'});
 % Hessian
 switch self.Option.NIP.HessianApproximation
     case 'Exact'
@@ -63,8 +55,6 @@ switch self.Option.NIP.HessianApproximation
     otherwise
         error('specified Hessian approximation method is not supported')
 end
-FuncObj.LAG_hessian = Function('LAG_hessian', {self.NLP.z, gamma_h, gamma_c, self.NLP.s}, {LAG_hessian},...
-    {'z', 'gamma_h', 'gamma_c', 's'}, {'LAG_hessian'});
 
 %% perturbed system of equation for complementarity between inequality constraint and its dual variable 
 % smooth FB function
@@ -75,8 +65,6 @@ psi = sqrt(a.^2 + b.^2 + sigma_SX.^2) - a - b;
 psi_FuncObj = Function('psi', {a, b, sigma_SX}, {psi}, {'a', 'b', 'sigma'}, {'psi'});
 % PSI function
 PSI = psi_FuncObj(self.NLP.c, gamma_c, sigma);
-FuncObj.PSI = Function('PSI', {self.NLP.z, gamma_c, self.NLP.s, sigma}, {PSI},...
-    {'z', 'gamma_c', 's', 'sigma'}, {'PSI'});
 % PSI jacobian
 PSI_grad_z = jacobian(PSI, self.NLP.z);
 PSI_grad_gamma_c = jacobian(PSI, gamma_c);

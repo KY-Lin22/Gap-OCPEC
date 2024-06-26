@@ -53,6 +53,8 @@ Log.time       = zeros(l_Max + 1, 1);
 %% continuation loop (l: continuation step counter, Y_l: current iterate, Y: previous iterate)
 Y = zeros(Y_Node(3), 1);
 Y_dot = zeros(Y_Node(3), 1);
+p = zeros(2, 1);
+p_dot = zeros(2, 1);
 l = 0;
 while true
     %% step 1: evaluate iterate
@@ -68,7 +70,7 @@ while true
         timeElasped_Y = Info_firstNLP.time;
     else
         % evaluate new iterate by integrating a differential equation
-        [Y_l, Info_integrator] = self.integrate_differential_equation(Y, Y_dot);        
+        [Y_l, Info_integrator] = self.integrate_differential_equation(Y, Y_dot, p, p_dot, p_l, p_dot_l);        
         terminal_status_l = Info_integrator.terminal_status;
         terminal_msg_l = Info_integrator.terminal_msg; 
         timeElasped_Y = Info_integrator.time;
@@ -132,6 +134,8 @@ while true
         % IPOPT at this homotopy iteration (not the final) finds the optimal solution, prepare for next homotopy iteration
         Y = Y_l;
         Y_dot = Y_dot_l;
+        p = p_l;
+        p_dot = p_dot_l;
         l = l + 1;
     end
 

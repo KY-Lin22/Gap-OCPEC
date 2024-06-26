@@ -56,7 +56,7 @@ classdef CGMRES_Based_Solver < handle
 
         %% stage 2: evaluate new iterate by integrating a differential equation
         % evaluate new iterate by integration
-        [Y_l, Info] = integrate_differential_equation(self, Y, Y_dot)
+        [Y_l, Info] = integrate_differential_equation(self, Y, Y_dot, p, p_dot, p_l, p_dot_l)
 
         % solving differential equation
         [Y_dot, Info] = solve_differential_equation(self, Y, p, p_dot, Y_dot_Init)

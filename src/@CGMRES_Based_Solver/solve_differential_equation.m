@@ -6,12 +6,7 @@ switch self.Option.Continuation.differential_equation_solve
     case 'FDGMRES'
         [Y_dot, rho] = self.FDGMRES_method(Y, p, p_dot, Y_dot_Init, epsilon);
     case 'direct'       
-        % KKT residual, KKT matrix, and sensitivity matrix
-        KKT_residual = full(self.FuncObj.KKT_residual(Y, p));
-        KKT_matrix = sparse(self.FuncObj.KKT_matrix(Y, p));
-        sensitivity_matrix = sparse(self.FuncObj.sensitivity_matrix(Y, p));
-        % Y_dot and rho
-        Y_dot = KKT_matrix\(-epsilon * KKT_residual - sensitivity_matrix * p_dot);
+        Y_dot = full(self.FuncObj.Y_dot(Y, p, p_dot, epsilon));
         rho = 0;      
     otherwise
         error('specified method is not supported')

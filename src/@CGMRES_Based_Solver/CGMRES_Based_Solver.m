@@ -44,7 +44,7 @@ classdef CGMRES_Based_Solver < handle
         % evaluate natural residual
         natRes = evaluate_natural_residual(self, z_Opt)
 
-        %% stage 1: solve first parameterized NLP
+        %% stage 1: evaluate first iterate by solving first parameterized NLP
         % main function of solving first parameterized NLP
         [Y, Info] = solve_first_NLP(self, z_Init, p)
 
@@ -54,8 +54,11 @@ classdef CGMRES_Based_Solver < handle
         % merit line search in non-interior-point method
         [Y_k, Info] = LineSearch_Merit(self, beta, Y, p, dY);
 
-        %% stage 2: solve differential equation
-        % main function of solving differential equation
+        %% stage 2: evaluate new iterate by integrating a differential equation
+        % evaluate new iterate by integration
+        [Y_l, Info] = integrate_differential_equation(self, Y, Y_dot)
+
+        % solving differential equation
         [Y_dot, Info] = solve_differential_equation(self, Y, p, p_dot, Y_dot_Init, epsilon)
 
         % FDGMRES method

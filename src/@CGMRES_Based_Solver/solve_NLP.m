@@ -54,6 +54,8 @@ Log.VI_nat_res = zeros(l_Max + 1, 1);
 Log.time       = zeros(l_Max + 1, 1); 
 
 %% continuation loop (l: continuation step counter, Y_l: current iterate, Y: previous iterate)
+Y = zeros(Y_Node(3), 1);
+Y_dot = zeros(Y_Node(3), 1);
 l = 0;
 while true
     %% step 1: evaluate iterate
@@ -62,25 +64,20 @@ while true
     p_dot_l = P_dot(:, l + 1);
     % evaluate iterate Y
     if l == 0
-        % solve the first parameterized NLP
+        % evaluate first iterate by solving first parameterized NLP
         [Y_l, Info_firstNLP] = self.solve_first_NLP(z_Init, p_l);
         terminal_status_l = Info_firstNLP.terminal_status;
         terminal_msg_l = Info_firstNLP.terminal_msg;
         timeElasped_Y = Info_firstNLP.time;
     else
-        % evaluate new iterate by integrating a differential equation with explicit Euler method
-        timeStart_Y = tic;
-        Y_l = Y + dtau * Y_dot;
-        terminal_status_l = 1;
-        terminal_msg_l = ['- Solver succeeds: ', 'because a new iterate found by integrating a differential equation']; 
-        timeElasped_Y = toc(timeStart_Y);
+        % evaluate new iterate by integrating a differential equation
+        [Y_l, Info_integrator] = self.integrate_differential_equation(Y, Y_dot);        
+        terminal_status_l = Info_integrator.terminal_status;
+        terminal_msg_l = Info_integrator.terminal_msg; 
+        timeElasped_Y = Info_integrator.time;
     end
     % evaluate time derivative of iterate Y_dot
-    if l == 0
-        Y_dot_l_Init = zeros(Y_Node(3), 1);
-    else
-        Y_dot_l_Init = Y_dot;
-    end
+    Y_dot_l_Init = Y_dot;
     [Y_dot_l, Info_differential_equation] = self.solve_differential_equation(Y_l, p_l, p_dot_l, Y_dot_l_Init, epsilon);
     GMRES_res_l = Info_differential_equation.GMRES_res;
     timeElasped_Y_dot = Info_differential_equation.time;
@@ -101,7 +98,7 @@ while true
     Log.time(l + 1, :) = timeElasped_Y + timeElasped_Y_dot;
     % print
     if mod(l, 10) ==  0
-        disp('---------------------------------------------------------------------------------------------------')
+        disp('-----------------------------------------------------------------------------------------------------------------')
         headMsg = ' StepNum |    s     |   sigma  |   p_dot  |   Y_dot  | GMRES_res |   cost   | KKT_error | VI_nat_res | time(s) ';
         disp(headMsg)
     end

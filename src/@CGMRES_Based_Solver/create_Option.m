@@ -47,6 +47,8 @@ Option.Continuation.dtau = 0.001;
 % method to solve the first parameterized NLP and differential equation
 Option.Continuation.first_NLP_solve = 'IPOPT'; % 'non_interior_point', 'IPOPT'
 Option.Continuation.differential_equation_solve = 'direct'; % 'FDGMRES', 'direct'
+% method to integrating the differential equation
+Option.Continuation.integration_method = 'explitic_Euler'; % 'explitic_Euler', 'RK4'
 % tolerance
 Option.Continuation.tol.KKT_error = 1e-2;
 Option.Continuation.tol.VI_nat_res = 1e-2;

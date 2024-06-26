@@ -59,7 +59,7 @@ classdef CGMRES_Based_Solver < handle
         [Y_l, Info] = integrate_differential_equation(self, Y, Y_dot)
 
         % solving differential equation
-        [Y_dot, Info] = solve_differential_equation(self, Y, p, p_dot, Y_dot_Init, epsilon)
+        [Y_dot, Info] = solve_differential_equation(self, Y, p, p_dot, Y_dot_Init)
 
         % FDGMRES method
 

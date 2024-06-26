@@ -40,9 +40,6 @@ end
 Y_Node = cumsum([self.NLP.Dim.z, self.NLP.Dim.h, self.NLP.Dim.c]);
 % create parameter sequence
 [P, P_dot, l_Max] = self.create_parameter_sequence(s_Init, s_End);
-% fictitious time step and stabilization parameter
-dtau = self.Option.Continuation.dtau;
-epsilon = 1/dtau;
 % create record
 Log.param      = zeros(l_Max + 1, 2); % [s, sigma]
 Log.p_dot      = zeros(l_Max + 1, 1);
@@ -78,7 +75,7 @@ while true
     end
     % evaluate time derivative of iterate Y_dot
     Y_dot_l_Init = Y_dot;
-    [Y_dot_l, Info_differential_equation] = self.solve_differential_equation(Y_l, p_l, p_dot_l, Y_dot_l_Init, epsilon);
+    [Y_dot_l, Info_differential_equation] = self.solve_differential_equation(Y_l, p_l, p_dot_l, Y_dot_l_Init);
     GMRES_res_l = Info_differential_equation.GMRES_res;
     timeElasped_Y_dot = Info_differential_equation.time;
 

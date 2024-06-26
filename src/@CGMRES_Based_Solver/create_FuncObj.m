@@ -20,8 +20,6 @@ dgamma_c = MX.sym('dgamma_c', self.NLP.Dim.c, 1);
 dY = [dz; dgamma_h; dgamma_c];
 % p_dot
 p_dot = MX.sym('p_dot', 2, 1);
-% epsilon (stabilization parameter for differential equation)
-epsilon = MX.sym('epsilon', 1, 1);
 
 %% IPOPT solver for solving the first parameterized NLP
 NLP_Prob = struct('x', self.NLP.z, 'f', self.NLP.J, 'g', [self.NLP.h; self.NLP.c], 'p', self.NLP.s); 
@@ -108,7 +106,8 @@ sensitivity_matrix = ...
     PSI_sensitivity_s,      PSI_sensitivity_sigma];
 
 %% differential equation for Y
+epsilon = self.Option.Continuation.epsilon;
 Y_dot = KKT_matrix\(-epsilon * KKT_residual - sensitivity_matrix * p_dot);
-FuncObj.Y_dot = Function('Y_dot', {Y, p, p_dot, epsilon}, {Y_dot}, {'Y', 'p', 'p_dot', 'epsilon'}, {'Y_dot'});
+FuncObj.Y_dot = Function('Y_dot', {Y, p, p_dot}, {Y_dot}, {'Y', 'p', 'p_dot'}, {'Y_dot'});
 
 end

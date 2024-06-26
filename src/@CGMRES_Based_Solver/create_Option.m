@@ -42,8 +42,9 @@ Option.IPOPT_Solver.ipopt.mu_strategy = 'monotone'; % default: 'monotone', 'adap
 % Option.IPOPT_Solver.ipopt.mu_min = 5e-3; % default 0 (for 'adaptive' mu strategy, need to specified by 0.5*sigma_Init^2)
 
 %% Option for stage 2: solve differential equation
-% fictitious time 
+% fictitious time and stabilization parameter
 Option.Continuation.dtau = 0.001;
+Option.Continuation.epsilon = 1000;
 % method to solve the first parameterized NLP and differential equation
 Option.Continuation.first_NLP_solve = 'IPOPT'; % 'non_interior_point', 'IPOPT'
 Option.Continuation.differential_equation_solve = 'direct'; % 'FDGMRES', 'direct'

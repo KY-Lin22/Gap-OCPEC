@@ -1,5 +1,5 @@
 function [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
-% solve parameterized NLP by solver combines non-interior-point method and CGMRES method
+% solve parameterized NLP by solver using dynamical system method
 % NLP has the form:
 %  min  J(z),
 %  s.t. h(z) = 0,
@@ -57,7 +57,7 @@ p = zeros(2, 1);
 p_dot = zeros(2, 1);
 l = 0;
 while true
-    %% step 1: evaluate iterate
+    %% step 1: evaluate iterate at current continuation step
      % specify parameter p and its time derivative p_dot
     p_l = P(:, l + 1);    
     p_dot_l = P_dot(:, l + 1);
@@ -76,10 +76,10 @@ while true
         timeElasped_Y = Info_integrator.time;
     end
     % evaluate time derivative of iterate Y_dot
-    Y_dot_l_Init = Y_dot;
-    [Y_dot_l, Info_differential_equation] = self.solve_differential_equation(Y_l, p_l, p_dot_l, Y_dot_l_Init);
-    GMRES_res_l = Info_differential_equation.GMRES_res;
-    timeElasped_Y_dot = Info_differential_equation.time;
+    Y_dot_l_Init = Y_dot; % initial guess for iterate solver (GMRES)
+    [Y_dot_l, Info_solve_Y_dot] = self.solve_differential_equation(Y_l, p_l, p_dot_l, Y_dot_l_Init);
+    GMRES_res_l = Info_solve_Y_dot.GMRES_res;
+    timeElasped_Y_dot = Info_solve_Y_dot.time;
 
     %% step 2: record and print information of the current continuation step
     % some quantities of current iterate
@@ -115,23 +115,22 @@ while true
 
     %% step 3: check ternimation based on the current continuation step
     if terminal_status_l && (VI_nat_res_l <= self.Option.Continuation.tol.VI_nat_res) && (KKT_error_l <= self.Option.Continuation.tol.KKT_error)
-        % IPOPT at this continuation step finds the optimal solution
-        % satisfying the desired VI natural residual and KKT residual
+        % this continuation step finds the desired optimal solution
         terminal_status = 1;
         terminal_msg = terminal_msg_l;
         break
     elseif ~terminal_status_l
-        % IPOPT at this continuation step fails to find the optimal solution
+        % this continuation step fails to find the optimal solution
         terminal_status = 0;
         terminal_msg = terminal_msg_l;
         break
     elseif l == l_Max
-        % IPOPT still can not find the optimal solution in the final continuation step
+        % final continuation step still can not find the desired optimal solution
         terminal_status = -1;
         terminal_msg = 'solver can not find the optimal solution satisfying the desired VI natural residual';
         break
     else
-        % IPOPT at this homotopy iteration (not the final) finds the optimal solution, prepare for next homotopy iteration
+        % this continuation step finds the optimal solution, prepare for next step
         Y = Y_l;
         Y_dot = Y_dot_l;
         p = p_l;

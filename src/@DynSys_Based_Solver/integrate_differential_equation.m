@@ -19,6 +19,7 @@ switch self.Option.Continuation.integration_method
         [k_2, ~] = self.solve_differential_equation(Y + (dtau/2)*k_1, p_m, p_dot_m, []);
         [k_3, ~] = self.solve_differential_equation(Y + (dtau/2)*k_2, p_m, p_dot_m, []);
         [k_4, ~] = self.solve_differential_equation(Y + dtau*k_3,     p_l, p_dot_l, []);
+        % update iterate
         Y_l = Y + (dtau/6) * (k_1 + 2*k_2 + 2*k_3 + k_4);
     otherwise
         error('specified integration method is not supported')

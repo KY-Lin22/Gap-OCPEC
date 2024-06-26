@@ -1,5 +1,5 @@
-classdef CGMRES_Based_Solver < handle
-    %Implementation of solver that combines non-interior-point and C/GMRES method which solves the following NLP problem:
+classdef DynSys_Based_Solver < handle
+    %Implementation of solver using dynamical system method which solves the following NLP problem:
     %  min  J(z),
     %  s.t. h(z) = 0,
     %       c(z, s) >= 0
@@ -10,14 +10,14 @@ classdef CGMRES_Based_Solver < handle
     properties
         OCPEC % struct, optimal control problem with equalibrium constraints
         NLP % struct, nonlinear programming problem (discretized OCPEC)
-        Option % struct, C/GMRES solver option
+        Option % struct, solver option
         FuncObj % struct, function object
     end
 
     %% Constructor method
     methods
-        function self = CGMRES_Based_Solver(OCPEC, NLP, Option)
-            %CGMRES_Based_Solver Construct an instance of this class
+        function self = DynSys_Based_Solver(OCPEC, NLP, Option)
+            %DynSys_Based_Solver: Construct an instance of this class
             %   Detailed explanation goes here
             disp('creating solver...')
             % initialize properties: OCPEC, NLP, Option, FuncObj
@@ -35,7 +35,7 @@ classdef CGMRES_Based_Solver < handle
         % create function Object
         FuncObj = create_FuncObj(self) 
 
-        % main function of solver that combines non-interior-point method and CGMRES method
+        % main function of solver using dynamical system method
         [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
 
         % create parameter and its time derivative sequence

@@ -160,18 +160,19 @@ Info.Log = Log;
 Info.time = sum(Log.time);
 % display result
 disp('*------------------------------------------------- Solution Information --------------------------------------------------*')
-disp(['1. Terminal Message: ', Info.terminal_msg])
+disp('1. Terminal Message')
+disp(Info.terminal_msg)
 disp('2. Continuation Step Message')
-disp(['- TimeElapsed: .............................................. ', num2str(Info.time,'%10.4f'), ' s'])
-disp(['- Continuation Step: ........................................ ', num2str(Info.continuationStepNum)])
-disp(['- Total time for solving first parameterized NLP: ........... ', num2str(Log.time(1),'%10.4f'), ' s'])
-disp(['- Total time for solving differential equation: ............. ', num2str((Info.time - Log.time(1)),'%10.4f'), ' s'])
+disp(['- TimeElapsed: ................................................... ', num2str(Info.time,'%10.4f'), ' s'])
+disp(['- Total time for solving first parameterized NLP: ................ ', num2str(Log.time(1),'%10.4f'), ' s'])
+disp(['- Total time for solving subsequent parameterized NLP: ........... ', num2str((Info.time - Log.time(1)),'%10.4f'), ' s'])
+disp(['- Continuation Step: ............................................. ', num2str(Info.continuationStepNum)])
 if Info.continuationStepNum ~= 0
-    disp(['- Average time for solving each differential equation: ...... ', num2str((Info.time - Log.time(1))/Info.continuationStepNum,'%10.4f'), ' s'])
+    disp(['- Average time for each step using dynamical system method: ...... ', num2str((Info.time - Log.time(1))/Info.continuationStepNum,'%10.4f'), ' s'])
 end
 disp('3. Solution Message')
-disp(['- Cost: ..................................................... ', num2str(Info.cost,'%10.3e'), '; '])
-disp(['- KKT error: ................................................ ', num2str(Info.KKT_error,'%10.3e'), '; '])
-disp(['- VI natural residual: ...................................... ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
+disp(['- Cost: .......................................................... ', num2str(Info.cost,'%10.3e'), '; '])
+disp(['- KKT error: ..................................................... ', num2str(Info.KKT_error,'%10.3e'), '; '])
+disp(['- VI natural residual: ........................................... ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
 
 end

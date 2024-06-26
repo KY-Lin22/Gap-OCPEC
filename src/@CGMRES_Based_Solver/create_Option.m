@@ -49,10 +49,10 @@ Option.Continuation.epsilon = 1000;
 Option.Continuation.first_NLP_solve = 'IPOPT'; % 'non_interior_point', 'IPOPT'
 Option.Continuation.differential_equation_solve = 'direct'; % 'FDGMRES', 'direct'
 % method to integrating the differential equation
-Option.Continuation.integration_method = 'explitic_Euler'; % 'explitic_Euler', 'RK4'
+Option.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
 % tolerance
-Option.Continuation.tol.KKT_error = 1e-2;
-Option.Continuation.tol.VI_nat_res = 1e-2;
+Option.Continuation.tol.KKT_error = 1e-4;
+Option.Continuation.tol.VI_nat_res = 1e-4;
 % homotopy (relaxation parameter)
 Option.Continuation.kappa_s_times = 0.8; % update
 % homotopy (smoothing parameter)

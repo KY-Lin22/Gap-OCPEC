@@ -38,6 +38,9 @@ classdef CGMRES_Based_Solver < handle
         % main function of solver that combines non-interior-point method and CGMRES method
         [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
 
+        % create parameter and its time derivative sequence
+        [P, P_dot, l_Max] = create_parameter_sequence(self, s_Init, s_End);
+
         % evaluate natural residual
         natRes = evaluate_natural_residual(self, z_Opt)
 

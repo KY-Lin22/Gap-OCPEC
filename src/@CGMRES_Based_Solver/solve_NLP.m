@@ -34,152 +34,131 @@ end
 if s_Init < s_End
     error('s_Init should not smaller than s_End')
 end
+
+%% Initialization
 % Y node (z, gamma_h, gamma_c)
 Y_Node = cumsum([self.NLP.Dim.z, self.NLP.Dim.h, self.NLP.Dim.c]);
-
-% load option parameter (for parameter trajectory)
-kappa_s_times = self.Option.Continuation.kappa_s_times;
-sigma_Init = self.Option.Continuation.sigma_Init;
-sigma_End = self.Option.Continuation.sigma_End;
-kappa_sigma_times = self.Option.Continuation.kappa_sigma_times;
-kappa_sigma_exp = self.Option.Continuation.kappa_sigma_exp;
-
+% create parameter sequence
+[P, P_dot, l_Max] = self.create_parameter_sequence(s_Init, s_End);
 % fictitious time step and stabilization parameter
 dtau = self.Option.Continuation.dtau;
 epsilon = 1/dtau;
+% create record
+Log.param      = zeros(l_Max + 1, 2); % [s, sigma]
+Log.p_dot      = zeros(l_Max + 1, 1);
+Log.Y_dot      = zeros(l_Max + 1, 1);
+Log.GMRES_res  = zeros(l_Max + 1, 1);
+Log.cost       = zeros(l_Max + 1, 1);
+Log.KKT_error  = zeros(l_Max + 1, 1); 
+Log.VI_nat_res = zeros(l_Max + 1, 1);
+Log.time       = zeros(l_Max + 1, 1); 
 
-% formulate parameter vector
-p_Init = [s_Init; sigma_Init];
-p_End = [s_End; sigma_End];
-
-%% create record
-% evaluate the max number of continuation step
-p_test = p_Init;
-j_Max = 0;
-while true
-    if all(p_test == p_End)
-        break
-    else
-        p_trial = [kappa_s_times*p_test(1);...
-            min([kappa_sigma_times*p_test(2), p_test(2)^kappa_sigma_exp])];
-        p_test = max([p_trial, p_End], [], 2);
-        j_Max = j_Max + 1;
-    end
-end
-% log for each step's information
-Log.param      = zeros(j_Max + 1, 2); % [s, sigma]
-Log.Y_dot      = zeros(j_Max + 1, 1);
-Log.GMRES_res  = zeros(j_Max + 1, 1);
-Log.cost       = zeros(j_Max + 1, 1);
-Log.KKT_error  = zeros(j_Max + 1, 1); 
-Log.VI_nat_res = zeros(j_Max + 1, 1);
-Log.time       = zeros(j_Max + 1, 1); 
-
-%% continuation loop (j: continuation step counter, Y_j: current iterate, Y: previous iterate)
-j = 0;
+%% continuation loop (l: continuation step counter, Y_l: current iterate, Y: previous iterate)
+l = 0;
 while true
     %% step 1: evaluate iterate
-    if j == 0
-        % specify parameter
-        p_j = p_Init;
+     % specify parameter p and its time derivative p_dot
+    p_l = P(:, l + 1);    
+    p_dot_l = P_dot(:, l + 1);
+    % evaluate iterate Y
+    if l == 0
         % solve the first parameterized NLP
-        [Y_j, Info_firstNLP] = self.solve_first_NLP(z_Init, p_j);
-        terminal_status_j = Info_firstNLP.terminal_status;
-        terminal_msg_j = Info_firstNLP.terminal_msg;
-        time_j = Info_firstNLP.time;
-        % initialize quantities
-        Y_dot = zeros(Y_Node(3), 1);
-        GMRES_res_j = 0;
+        [Y_l, Info_firstNLP] = self.solve_first_NLP(z_Init, p_l);
+        terminal_status_l = Info_firstNLP.terminal_status;
+        terminal_msg_l = Info_firstNLP.terminal_msg;
+        timeElasped_Y = Info_firstNLP.time;
     else
-        % specify new parameter
-        p_j_trial = [kappa_s_times*p(1); min([kappa_sigma_times*p(2), p(2)^kappa_sigma_exp])];
-        p_j = max([p_j_trial, p_End], [], 2);
-        % compute time derivative p_dot in previous fictitious time tau by finite difference 
-        p_dot = (p_j - p)/dtau; 
-        % compute time derivative Y_dot in previous fictitious time tau
-        [Y_dot, Info_differential_equation] = self.solve_differential_equation(Y, p, p_dot, Y_dot_Init, epsilon);
         % evaluate new iterate by integrating a differential equation with explicit Euler method
-        Y_j = Y + dtau * Y_dot;
-        % terminal info and time
-        terminal_status_j = 1;
-        terminal_msg_j = ['- Solver succeeds: ', 'because a new iterate found by solving a differential equation']; 
-        time_j = Info_differential_equation.time;
-        GMRES_res_j = Info_differential_equation.GMRES_res;
+        timeStart_Y = tic;
+        Y_l = Y + dtau * Y_dot;
+        terminal_status_l = 1;
+        terminal_msg_l = ['- Solver succeeds: ', 'because a new iterate found by integrating a differential equation']; 
+        timeElasped_Y = toc(timeStart_Y);
     end
+    % evaluate time derivative of iterate Y_dot
+    if l == 0
+        Y_dot_l_Init = zeros(Y_Node(3), 1);
+    else
+        Y_dot_l_Init = Y_dot;
+    end
+    [Y_dot_l, Info_differential_equation] = self.solve_differential_equation(Y_l, p_l, p_dot_l, Y_dot_l_Init, epsilon);
+    GMRES_res_l = Info_differential_equation.GMRES_res;
+    timeElasped_Y_dot = Info_differential_equation.time;
 
     %% step 2: record and print information of the current continuation step
     % some quantities of current iterate
-    J_j = full(self.FuncObj.J(Y_j(1 : Y_Node(1), 1)));
-    KKT_error_j = norm(full(self.FuncObj.KKT_residual(Y_j, p_j)), inf);
-    VI_nat_res_j = self.evaluate_natural_residual(Y_j(1 : Y_Node(1), 1));
+    J_l = full(self.FuncObj.J(Y_l(1 : Y_Node(1), 1)));
+    KKT_error_l = norm(full(self.FuncObj.KKT_residual(Y_l, p_l)), inf);
+    VI_nat_res_l = self.evaluate_natural_residual(Y_l(1 : Y_Node(1), 1));
     % record
-    Log.param(j + 1, :) = p_j';
-    Log.Y_dot(j + 1, :) = norm(Y_dot, inf);
-    Log.GMRES_res(j + 1, :) = GMRES_res_j;
-    Log.cost(j + 1, :) = J_j;
-    Log.KKT_error(j + 1, :) = KKT_error_j;
-    Log.VI_nat_res(j + 1, :) = VI_nat_res_j;
-    Log.time(j + 1, :) = time_j;
+    Log.param(l + 1, :) = p_l';  
+    Log.p_dot(l + 1, :) = norm(p_dot_l, inf);
+    Log.Y_dot(l + 1, :) = norm(Y_dot_l, inf);
+    Log.GMRES_res(l + 1, :) = GMRES_res_l;
+    Log.cost(l + 1, :) = J_l;
+    Log.KKT_error(l + 1, :) = KKT_error_l;
+    Log.VI_nat_res(l + 1, :) = VI_nat_res_l;
+    Log.time(l + 1, :) = timeElasped_Y + timeElasped_Y_dot;
     % print
-    if mod(j, 10) ==  0
+    if mod(l, 10) ==  0
         disp('---------------------------------------------------------------------------------------------------')
-        headMsg = ' StepNum |    s     |   sigma  |   Y_dot  | GMRES_res |   cost   | KKT_error | VI_nat_res | time(s) ';
+        headMsg = ' StepNum |    s     |   sigma  |   p_dot  |   Y_dot  | GMRES_res |   cost   | KKT_error | VI_nat_res | time(s) ';
         disp(headMsg)
     end
     continuation_Step_Msg = ['  ',...
-        num2str(j,'%10.2d'), '/', num2str(j_Max,'%10.2d'),'  | ',...
-        num2str(Log.param(j + 1, 1), '%10.2e'),' | ', num2str(Log.param(j + 1, 2), '%10.2e'),' | ',...
-        num2str(Log.Y_dot(j + 1),'%10.2e'), ' | ',...
-        num2str(Log.GMRES_res(j + 1),'%10.2e'), '  | ',...
-        num2str(Log.cost(j + 1),'%10.2e'), ' | ',...
-        num2str(Log.KKT_error(j + 1), '%10.2e'), '  |  ',...
-        num2str(Log.VI_nat_res(j + 1), '%10.2e'),'  | ',...
-        num2str(Log.time(j + 1), '%10.4f')];
+        num2str(l,'%10.2d'), '/', num2str(l_Max,'%10.2d'),'  | ',...
+        num2str(Log.param(l + 1, 1), '%10.2e'),' | ', num2str(Log.param(l + 1, 2), '%10.2e'),' | ',...
+        num2str(Log.p_dot(l + 1),'%10.2e'), ' | ',...
+        num2str(Log.Y_dot(l + 1),'%10.2e'), ' | ',...
+        num2str(Log.GMRES_res(l + 1),'%10.2e'), '  | ',...
+        num2str(Log.cost(l + 1),'%10.2e'), ' | ',...
+        num2str(Log.KKT_error(l + 1), '%10.2e'), '  |  ',...
+        num2str(Log.VI_nat_res(l + 1), '%10.2e'),'  | ',...
+        num2str(Log.time(l + 1), '%10.4f')];
     disp(continuation_Step_Msg)
 
     %% step 3: check ternimation based on the current continuation step
-    if terminal_status_j && (VI_nat_res_j <= self.Option.Continuation.tol.VI_nat_res) && (KKT_error_j <= self.Option.Continuation.tol.KKT_error)
+    if terminal_status_l && (VI_nat_res_l <= self.Option.Continuation.tol.VI_nat_res) && (KKT_error_l <= self.Option.Continuation.tol.KKT_error)
         % IPOPT at this continuation step finds the optimal solution
         % satisfying the desired VI natural residual and KKT residual
         terminal_status = 1;
-        terminal_msg = terminal_msg_j;
+        terminal_msg = terminal_msg_l;
         break
-    elseif ~terminal_status_j
+    elseif ~terminal_status_l
         % IPOPT at this continuation step fails to find the optimal solution
         terminal_status = 0;
-        terminal_msg = terminal_msg_j;
+        terminal_msg = terminal_msg_l;
         break
-    elseif j == j_Max
+    elseif l == l_Max
         % IPOPT still can not find the optimal solution in the final continuation step
         terminal_status = -1;
         terminal_msg = 'solver can not find the optimal solution satisfying the desired VI natural residual';
         break
     else
         % IPOPT at this homotopy iteration (not the final) finds the optimal solution, prepare for next homotopy iteration
-        Y = Y_j;
-        p = p_j;
-        Y_dot_Init = Y_dot;
-        j = j + 1;
+        Y = Y_l;
+        Y_dot = Y_dot_l;
+        l = l + 1;
     end
 
 end
 
 %% return optimal solution and create information
 % extract primal and dual variable
-z_j       = Y_j(            1 : Y_Node(1), 1);
-gamma_h_j = Y_j(Y_Node(1) + 1 : Y_Node(2), 1);
-gamma_c_j = Y_j(Y_Node(2) + 1 : Y_Node(3), 1);
+z_j       = Y_l(            1 : Y_Node(1), 1);
+gamma_h_j = Y_l(Y_Node(1) + 1 : Y_Node(2), 1);
+gamma_c_j = Y_l(Y_Node(2) + 1 : Y_Node(3), 1);
 % return the current homotopy iterate as the optimal solution
 z_Opt = z_j;
 % create Info
-Info.continuationStepNum = j;
+Info.continuationStepNum = l;
 Info.terminal_status = terminal_status;
 Info.terminal_msg = terminal_msg;
 Info.gamma_h = gamma_h_j;
 Info.gamma_c = gamma_c_j;
-Info.cost = J_j;
-Info.KKT_error = KKT_error_j;
-Info.VI_natural_residual = VI_nat_res_j;
+Info.cost = J_l;
+Info.KKT_error = KKT_error_l;
+Info.VI_natural_residual = VI_nat_res_l;
 Info.Log = Log;
 Info.time = sum(Log.time);
 % display result

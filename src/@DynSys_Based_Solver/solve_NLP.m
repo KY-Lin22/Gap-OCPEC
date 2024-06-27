@@ -98,7 +98,7 @@ while true
     % print
     if mod(l, 10) ==  0
         disp('-----------------------------------------------------------------------------------------------------------------')
-        headMsg = ' StepNum |    s     |   sigma  |   p_dot  |   Y_dot  | GMRES_res |   cost   | KKT_error | VI_nat_res | time(s) ';
+        headMsg = ' StepNum |    s     |   sigma  |   p_dot  |   Y_dot  | GMRES_res |   cost   | KKT_error | VI_nat_res | time[s] ';
         disp(headMsg)
     end
     continuation_Step_Msg = ['  ',...
@@ -142,17 +142,17 @@ end
 
 %% return optimal solution and create information
 % extract primal and dual variable
-z_j       = Y_l(            1 : Y_Node(1), 1);
-gamma_h_j = Y_l(Y_Node(1) + 1 : Y_Node(2), 1);
-gamma_c_j = Y_l(Y_Node(2) + 1 : Y_Node(3), 1);
+z_l       = Y_l(            1 : Y_Node(1), 1);
+gamma_h_l = Y_l(Y_Node(1) + 1 : Y_Node(2), 1);
+gamma_c_l = Y_l(Y_Node(2) + 1 : Y_Node(3), 1);
 % return the current homotopy iterate as the optimal solution
-z_Opt = z_j;
+z_Opt = z_l;
 % create Info
 Info.continuationStepNum = l;
 Info.terminal_status = terminal_status;
 Info.terminal_msg = terminal_msg;
-Info.gamma_h = gamma_h_j;
-Info.gamma_c = gamma_c_j;
+Info.gamma_h = gamma_h_l;
+Info.gamma_c = gamma_c_l;
 Info.cost = J_l;
 Info.KKT_error = KKT_error_l;
 Info.VI_natural_residual = VI_nat_res_l;
@@ -164,11 +164,11 @@ disp('1. Terminal Message')
 disp(Info.terminal_msg)
 disp('2. Continuation Step Message')
 disp(['- TimeElapsed: ................................................... ', num2str(Info.time,'%10.4f'), ' s'])
-disp(['- Total time for solving first parameterized NLP: ................ ', num2str(Log.time(1),'%10.4f'), ' s'])
-disp(['- Total time for solving subsequent parameterized NLP: ........... ', num2str((Info.time - Log.time(1)),'%10.4f'), ' s'])
+disp(['- Total time for solving first parameterized NLP: ................ ', num2str(Info.Log.time(1),'%10.4f'), ' s'])
+disp(['- Total time for solving subsequent parameterized NLP: ........... ', num2str((Info.time - Info.Log.time(1)),'%10.4f'), ' s'])
 disp(['- Continuation Step: ............................................. ', num2str(Info.continuationStepNum)])
 if Info.continuationStepNum ~= 0
-    disp(['- Average time for each step using dynamical system method: ...... ', num2str((Info.time - Log.time(1))/Info.continuationStepNum,'%10.4f'), ' s'])
+    disp(['- Average time for each step using dynamical system method: ...... ', num2str((Info.time - Info.Log.time(1))/Info.continuationStepNum,'%10.4f'), ' s'])
 end
 disp('3. Solution Message')
 disp(['- Cost: .......................................................... ', num2str(Info.cost,'%10.3e'), '; '])

@@ -10,7 +10,7 @@ classdef IPOPT_Based_Solver < handle
     properties
         OCPEC % struct, optimal control problem with equalibrium constraints
         NLP % struct, nonlinear programming problem (discretized OCPEC)
-        Option % struct, IPOPT solver and homotopy option
+        Option % struct, solver option
         Solver % function object, IPOPT solver
     end
     
@@ -39,6 +39,9 @@ classdef IPOPT_Based_Solver < handle
     methods
         % solve a sequence of parameterized NLP in a homotopy manner from s_Init to s_End 
         [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
+
+        % create parameter sequence
+        [S, l_Max] = create_parameter_sequence(self, s_Init, s_End)
 
         % evaluate natural residual
         natRes = evaluate_natural_residual(self, z_Opt)  

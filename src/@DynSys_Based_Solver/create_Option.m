@@ -55,6 +55,7 @@ Option.Continuation.tol.KKT_error = 1e-4;
 Option.Continuation.tol.VI_nat_res = 1e-4;
 % homotopy (relaxation parameter)
 Option.Continuation.kappa_s_times = 0.8; % update
+Option.Continuation.kappa_s_exp = 1; % update
 % homotopy (smoothing parameter)
 Option.Continuation.sigma_Init = 1e-1;
 Option.Continuation.sigma_End = 1e-3;

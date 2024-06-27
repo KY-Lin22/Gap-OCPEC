@@ -4,6 +4,7 @@ function [P, P_dot, l_Max] = create_parameter_sequence(self, s_Init, s_End)
 
 % load option parameter 
 kappa_s_times = self.Option.Continuation.kappa_s_times;
+kappa_s_exp = self.Option.Continuation.kappa_s_exp;
 sigma_Init = self.Option.Continuation.sigma_Init;
 sigma_End = self.Option.Continuation.sigma_End;
 kappa_sigma_times = self.Option.Continuation.kappa_sigma_times;
@@ -20,7 +21,7 @@ while true
     if all(p_l == p_End)
         break
     else
-        p_trial = [kappa_s_times*p_l(1);...
+        p_trial = [min([kappa_s_times*p_l(1), p_l(1)^kappa_s_exp]);...
             min([kappa_sigma_times*p_l(2), p_l(2)^kappa_sigma_exp])];
         p_l = max([p_trial, p_End], [], 2);
         P = [P, p_l];

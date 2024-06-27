@@ -28,7 +28,7 @@ Option.NLP_Solver.ipopt.hessian_approximation = 'exact'; % 'exact' (default), 'l
 Option.Continuation.tol.VI_nat_res = 1e-4;
 % relaxation parameter
 Option.Continuation.kappa_s_times = 0.8; % update
-
+Option.Continuation.kappa_s_exp = 1; % update
 
 end
 

@@ -58,10 +58,10 @@ p_dot = zeros(2, 1);
 l = 0;
 while true
     %% step 1: evaluate iterate at current continuation step
-     % specify parameter p and its time derivative p_dot
+    % specify parameter p_l and its time derivative p_dot_l
     p_l = P(:, l + 1);    
     p_dot_l = P_dot(:, l + 1);
-    % evaluate iterate Y
+    % evaluate iterate Y_l
     if l == 0
         % evaluate first iterate by solving first parameterized NLP
         [Y_l, Info_firstNLP] = self.solve_first_NLP(z_Init, p_l);
@@ -75,7 +75,7 @@ while true
         terminal_msg_l = Info_integrator.terminal_msg; 
         timeElasped_Y = Info_integrator.time;
     end
-    % evaluate time derivative of iterate Y_dot
+    % evaluate time derivative of iterate Y_dot_l
     Y_dot_l_Init = Y_dot; % initial guess for iterate solver (GMRES)
     [Y_dot_l, Info_solve_Y_dot] = self.solve_differential_equation(Y_l, p_l, p_dot_l, Y_dot_l_Init);
     GMRES_res_l = Info_solve_Y_dot.GMRES_res;

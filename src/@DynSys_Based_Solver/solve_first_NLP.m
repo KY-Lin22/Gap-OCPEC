@@ -23,7 +23,7 @@ switch self.Option.Continuation.first_NLP_solve
         || (strcmp(self.FuncObj.IPOPT_Solver.stats.return_status, 'Feasible_Point_Found'));
         terminal_status = solver_status;
         terminal_msg = self.FuncObj.IPOPT_Solver.stats.return_status;
-        time = self.FuncObj.IPOPT_Solver.stats.t_wall_total; % self.Solver.t_proc_total; 
+        time = self.FuncObj.IPOPT_Solver.stats.t_wall_total; % t_proc_total; 
     otherwise
         error('specified method is not supported')
 end

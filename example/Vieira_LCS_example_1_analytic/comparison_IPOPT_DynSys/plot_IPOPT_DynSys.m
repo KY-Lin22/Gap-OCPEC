@@ -6,7 +6,7 @@ Data_IPOPT_DynSys = load('Data_test_IPOPT_DynSys');
 
 %%
 lineStyles = {'-','--',':','-.'};
-fast_index = 10;
+fast_index = 15;
 figure(1)
 for i = 1 : numel(Data_IPOPT_DynSys.rec.name) - fast_index
     continuationStepNum_i = Data_IPOPT_DynSys.rec.Info{fast_index + i}.continuationStepNum;

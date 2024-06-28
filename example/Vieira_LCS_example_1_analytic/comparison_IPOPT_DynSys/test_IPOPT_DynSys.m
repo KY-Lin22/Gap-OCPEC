@@ -10,21 +10,27 @@ OCPEC.nStages = nStages;
 OCPEC.timeStep = OCPEC.timeHorizon ./ OCPEC.nStages;
 
 %% create solver set (specify parameter)
-% KKT relaxation strategy for fast and slow update
+% KKT relaxation strategy for all update
 KKT_relaxation_strategy = {'Scholtes', 'Lin_Fukushima', 'Kadrani', ...
     'Steffensen_Ulbrich', 'Kanzow_Schwartz'};
-KKT_relaxation_name_fast = {...
+KKT_relaxation_name_fast_IPOPT = {...
     'KKT (Scholtes), fast, IPOPT-based',...
     'KKT (Lin-Fukushima), fast, IPOPT-based',...
     'KKT (Kadrani), fast, IPOPT-based', ...
     'KKT (Steffensen-Ulbrich), fast, IPOPT-based',...
     'KKT (Kanzow-Schwartz), fast, IPOPT-based'};
-KKT_relaxation_name_slow = {...
+KKT_relaxation_name_slow_IPOPT = {...
     'KKT (Scholtes), slow, IPOPT-based',...
     'KKT (Lin-Fukushima), slow, IPOPT-based',...
     'KKT (Kadrani), slow, IPOPT-based',...
     'KKT (Steffensen-Ulbrich), slow, IPOPT-based',...
     'KKT (Kanzow-Schwartz), slow, IPOPT-based'};
+KKT_relaxation_name_slow_DynSys = {...
+    'KKT (Scholtes), slow, DynSys-based',...
+    'KKT (Lin-Fukushima), slow, DynSys-based',...
+    'KKT (Kadrani), slow, DynSys-based',...
+    'KKT (Steffensen-Ulbrich), slow, DynSys-based',...
+    'KKT (Kanzow-Schwartz), slow, DynSys-based'};
 % primal gap parameter
 param_c = {1};
 % D gap parameter
@@ -40,10 +46,13 @@ s_Init_KKT = {...
     };
 s_Init_set = {};
 for i = 1 : numel(s_Init_KKT)
-    s_Init_set{end + 1} = s_Init_KKT{i}; % KKT fast
+    s_Init_set{end + 1} = s_Init_KKT{i}; % KKT fast IPOPT
 end
 for i = 1 : numel(s_Init_KKT)
-    s_Init_set{end + 1} = s_Init_KKT{i}; % KKT slow
+    s_Init_set{end + 1} = s_Init_KKT{i}; % KKT slow IPOPT
+end
+for i = 1 : numel(s_Init_KKT)
+    s_Init_set{end + 1} = s_Init_KKT{i}; % KKT slow DynSys
 end
 for i = 1 : numel(param_c)
     s_Init_set{end + 1} = (1-(param_c{i})/2); % primal gap
@@ -70,12 +79,12 @@ epsilon = 1000;
 solver_name = {};
 solver_set = {};
 
-%% create solver set (IPOPT_Based, fast)
+%% create solver set (IPOPT_Based, KKT, fast)
 % solver option
-Solver_option_IPOPT_fast = IPOPT_Based_Solver.create_Option();
-Solver_option_IPOPT_fast.Continuation.kappa_s_times = kappa_s_times_fast;
-Solver_option_IPOPT_fast.Continuation.kappa_s_exp = kappa_s_exp_fast;
-Solver_option_IPOPT_fast.Continuation.tol.VI_nat_res = VI_nat_res_tol;
+Solver_option_IPOPT_KKT_fast = IPOPT_Based_Solver.create_Option();
+Solver_option_IPOPT_KKT_fast.Continuation.kappa_s_times = kappa_s_times_fast;
+Solver_option_IPOPT_KKT_fast.Continuation.kappa_s_exp = kappa_s_exp_fast;
+Solver_option_IPOPT_KKT_fast.Continuation.tol.VI_nat_res = VI_nat_res_tol;
 % solver set
 for i = 1 : numel(s_Init_KKT)
     % discretize OCPEC into a NLP problem
@@ -83,18 +92,18 @@ for i = 1 : numel(s_Init_KKT)
     NLP_option_i.KKT_complementarity_relaxation_strategy = KKT_relaxation_strategy{i};
     NLP_i = NLP_Formulation(OCPEC, NLP_option_i);
     % create IPOPT_Based_Solver
-    solver_i = IPOPT_Based_Solver(OCPEC, NLP_i, Solver_option_IPOPT_fast);
+    solver_i = IPOPT_Based_Solver(OCPEC, NLP_i, Solver_option_IPOPT_KKT_fast);
     % save
-    solver_name{end + 1} = KKT_relaxation_name_fast{i};
+    solver_name{end + 1} = KKT_relaxation_name_fast_IPOPT{i};
     solver_set{end + 1} = solver_i;    
 end
 
-%% create solver set (IPOPT_Based, slow)
+%% create solver set (IPOPT_Based, KKT, slow)
 % solver option
-Solver_option_IPOPT_slow = IPOPT_Based_Solver.create_Option();
-Solver_option_IPOPT_slow.Continuation.kappa_s_times = kappa_s_times_slow;
-Solver_option_IPOPT_slow.Continuation.kappa_s_exp = kappa_s_exp_slow;
-Solver_option_IPOPT_slow.Continuation.tol.VI_nat_res = VI_nat_res_tol;
+Solver_option_IPOPT_KKT_slow = IPOPT_Based_Solver.create_Option();
+Solver_option_IPOPT_KKT_slow.Continuation.kappa_s_times = kappa_s_times_slow;
+Solver_option_IPOPT_KKT_slow.Continuation.kappa_s_exp = kappa_s_exp_slow;
+Solver_option_IPOPT_KKT_slow.Continuation.tol.VI_nat_res = VI_nat_res_tol;
 % solver set
 for i = 1 : numel(s_Init_KKT)
     % discretize OCPEC into a NLP problem
@@ -102,26 +111,45 @@ for i = 1 : numel(s_Init_KKT)
     NLP_option_i.KKT_complementarity_relaxation_strategy = KKT_relaxation_strategy{i};
     NLP_i = NLP_Formulation(OCPEC, NLP_option_i);
     % create IPOPT_Based_Solver
-    solver_i = IPOPT_Based_Solver(OCPEC, NLP_i, Solver_option_IPOPT_slow);
+    solver_i = IPOPT_Based_Solver(OCPEC, NLP_i, Solver_option_IPOPT_KKT_slow);
     % save
-    solver_name{end + 1} = KKT_relaxation_name_slow{i};
+    solver_name{end + 1} = KKT_relaxation_name_slow_IPOPT{i};
     solver_set{end + 1} = solver_i;    
 end
 
-%% create solver set (DynSys_Based, slow)
+%% create solver set (DynSys_Based, KKT, slow)
 % solver option
-Solver_option_DynSys_slow = DynSys_Based_Solver.create_Option();
-Solver_option_DynSys_slow.Continuation.dtau = dtau;
-Solver_option_DynSys_slow.Continuation.epsilon = epsilon;
-Solver_option_DynSys_slow.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
-Solver_option_DynSys_slow.Continuation.tol.KKT_error = KKT_error_tol;
-Solver_option_DynSys_slow.Continuation.tol.VI_nat_res = VI_nat_res_tol;
-Solver_option_DynSys_slow.Continuation.kappa_s_times = kappa_s_times_slow;
-Solver_option_DynSys_slow.Continuation.kappa_s_exp = kappa_s_exp_slow;
-Solver_option_DynSys_slow.Continuation.sigma_Init = sigma_Init;
-Solver_option_DynSys_slow.Continuation.sigma_End = sigma_End;
-Solver_option_DynSys_slow.Continuation.kappa_sigma_times = kappa_sigma_times;
-Solver_option_DynSys_slow.Continuation.kappa_sigma_exp = kappa_sigma_exp;
+Solver_option_DynSys_KKT_slow = DynSys_Based_Solver.create_Option();
+Solver_option_DynSys_KKT_slow.Continuation.kappa_s_times = kappa_s_times_slow;
+Solver_option_DynSys_KKT_slow.Continuation.kappa_s_exp = kappa_s_exp_slow;
+Solver_option_DynSys_KKT_slow.Continuation.tol.VI_nat_res = VI_nat_res_tol;
+% solver set
+for i = 1 : numel(s_Init_KKT)
+    % discretize OCPEC into a NLP problem
+    NLP_option_i.relaxation_problem = 'KKT_based'; 
+    NLP_option_i.KKT_complementarity_relaxation_strategy = KKT_relaxation_strategy{i};
+    NLP_i = NLP_Formulation(OCPEC, NLP_option_i);
+    % create IPOPT_Based_Solver
+    solver_i = DynSys_Based_Solver(OCPEC, NLP_i, Solver_option_DynSys_KKT_slow);
+    % save
+    solver_name{end + 1} = KKT_relaxation_name_slow_DynSys{i};
+    solver_set{end + 1} = solver_i;    
+end
+
+%% create solver set (DynSys_Based, gap, slow)
+% solver option
+Solver_option_DynSys_gap_slow = DynSys_Based_Solver.create_Option();
+Solver_option_DynSys_gap_slow.Continuation.dtau = dtau;
+Solver_option_DynSys_gap_slow.Continuation.epsilon = epsilon;
+Solver_option_DynSys_gap_slow.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
+Solver_option_DynSys_gap_slow.Continuation.tol.KKT_error = KKT_error_tol;
+Solver_option_DynSys_gap_slow.Continuation.tol.VI_nat_res = VI_nat_res_tol;
+Solver_option_DynSys_gap_slow.Continuation.kappa_s_times = kappa_s_times_slow;
+Solver_option_DynSys_gap_slow.Continuation.kappa_s_exp = kappa_s_exp_slow;
+Solver_option_DynSys_gap_slow.Continuation.sigma_Init = sigma_Init;
+Solver_option_DynSys_gap_slow.Continuation.sigma_End = sigma_End;
+Solver_option_DynSys_gap_slow.Continuation.kappa_sigma_times = kappa_sigma_times;
+Solver_option_DynSys_gap_slow.Continuation.kappa_sigma_exp = kappa_sigma_exp;
 % solver set (primal gap)
 for i = 1 : numel(param_c)
     % discretize OCPEC into a NLP problem
@@ -131,7 +159,7 @@ for i = 1 : numel(param_c)
     NLP_option_i.primal_gap_param_c = param_c{i};
     NLP_i = NLP_Formulation(OCPEC, NLP_option_i);
     % create DynSys_Based_Solver
-    solver_i = DynSys_Based_Solver(OCPEC, NLP_i, Solver_option_DynSys_slow);
+    solver_i = DynSys_Based_Solver(OCPEC, NLP_i, Solver_option_DynSys_gap_slow);
     % save
     solver_name{end + 1} = ['Gap (primal, symbolic, c = ' num2str(param_c{i}), ' slow, DynSys-Based'];
     solver_set{end + 1} = solver_i;    
@@ -146,7 +174,7 @@ for i = 1 : numel(param_a)
     NLP_option_i.D_gap_param_b = param_b{i};
     NLP_i = NLP_Formulation(OCPEC, NLP_option_i);
     % create DynSys_Based_Solver
-    solver_i = DynSys_Based_Solver(OCPEC, NLP_i, Solver_option_DynSys_slow);
+    solver_i = DynSys_Based_Solver(OCPEC, NLP_i, Solver_option_DynSys_gap_slow);
     % save
     solver_name{end + 1} =  ['Gap (D, symbolic, a = ' num2str(param_a{i}) ', b = ' num2str(param_b{i}) ')', ' slow, DynSys-Based'];
     solver_set{end + 1} = solver_i;    

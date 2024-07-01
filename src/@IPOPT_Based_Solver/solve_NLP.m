@@ -55,7 +55,7 @@ while true
     % specify parameter s_l
     s_l = S(:, l + 1);
     % evaluate iterate z_l by solving a parameterized NLP using IPOPT
-    solution_l = self.Solver('x0', z, 'p', s_l,...
+    solution_l = self.FuncObj.IPOPT_Solver('x0', z, 'p', s_l,...
         'lbg', [zeros(self.NLP.Dim.h, 1); zeros(self.NLP.Dim.c, 1)],...
         'ubg', [zeros(self.NLP.Dim.h, 1); inf*ones(self.NLP.Dim.c, 1)]);
     % extract solution and information
@@ -64,26 +64,28 @@ while true
     gamma_c_l = full(solution_l.lam_g(self.NLP.Dim.h + 1 : end, 1));
 
     J_l = full(solution_l.f);
-    KKT_error_primal_l = self.Solver.stats.iterations.inf_pr(end);
-    KKT_error_dual_l = self.Solver.stats.iterations.inf_du(end); 
+    KKT_error_primal_l = self.FuncObj.IPOPT_Solver.stats.iterations.inf_pr(end);
+    KKT_error_dual_l = self.FuncObj.IPOPT_Solver.stats.iterations.inf_du(end); 
+    KKT_error_l = max([KKT_error_primal_l, KKT_error_dual_l]);
+    
     VI_nat_res_l = self.evaluate_natural_residual(z_l);
 
-    stepSize_primal_l = self.Solver.stats.iterations.alpha_pr(2:end);
-    stepSize_dual_l = self.Solver.stats.iterations.alpha_du(2:end); 
+    stepSize_primal_l = self.FuncObj.IPOPT_Solver.stats.iterations.alpha_pr(2:end);
+    stepSize_dual_l = self.FuncObj.IPOPT_Solver.stats.iterations.alpha_du(2:end); 
 
-    iterNum_l = self.Solver.stats.iter_count;
-    solver_status_l = (strcmp(self.Solver.stats.return_status, 'Solve_Succeeded')) ...
-        || (strcmp(self.Solver.stats.return_status, 'Solved_To_Acceptable_Level'))...
-        || (strcmp(self.Solver.stats.return_status, 'Feasible_Point_Found'));
+    iterNum_l = self.FuncObj.IPOPT_Solver.stats.iter_count;
+    solver_status_l = (strcmp(self.FuncObj.IPOPT_Solver.stats.return_status, 'Solve_Succeeded')) ...
+        || (strcmp(self.FuncObj.IPOPT_Solver.stats.return_status, 'Solved_To_Acceptable_Level'))...
+        || (strcmp(self.FuncObj.IPOPT_Solver.stats.return_status, 'Feasible_Point_Found'));
     terminal_status_l = solver_status_l;
-    terminal_msg_l = self.Solver.stats.return_status;
-    time_l = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
+    terminal_msg_l = self.FuncObj.IPOPT_Solver.stats.return_status;
+    time_l = self.FuncObj.IPOPT_Solver.stats.t_wall_total; % self.Solver.t_proc_total;
 
     %% step 2: record and print information of the current continuation step
     % record
     Log.param(l + 1, :) = s_l;
     Log.cost(l + 1, :) = J_l;
-    Log.KKT_error(l + 1, :) = max([KKT_error_primal_l, KKT_error_dual_l]);
+    Log.KKT_error(l + 1, :) = KKT_error_l;
     Log.VI_nat_res(l + 1, :) = VI_nat_res_l;
     Log.iterNum(l + 1, :) = iterNum_l;
     Log.time(l + 1, :) = time_l;
@@ -138,7 +140,7 @@ Info.terminal_msg = terminal_msg;
 Info.gamma_h = gamma_h_l;
 Info.gamma_c = gamma_c_l;
 Info.cost = J_l;
-Info.KKT_error = max([KKT_error_primal_l, KKT_error_dual_l]);
+Info.KKT_error = KKT_error_l;
 Info.VI_natural_residual = VI_nat_res_l;
 Info.Log = Log;
 Info.time = sum(Log.time);

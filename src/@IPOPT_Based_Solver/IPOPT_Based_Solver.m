@@ -11,7 +11,7 @@ classdef IPOPT_Based_Solver < handle
         OCPEC % struct, optimal control problem with equalibrium constraints
         NLP % struct, nonlinear programming problem (discretized OCPEC)
         Option % struct, solver option
-        Solver % function object, IPOPT solver
+        FuncObj % struct, function object
     end
     
     %% Constructor method       
@@ -21,15 +21,11 @@ classdef IPOPT_Based_Solver < handle
             %   Detailed explanation goes here
             import casadi.*
             disp('creating solver...')
-            % properties: OCPEC, NLP, and Option
+            % initialize properties: OCPEC, NLP, Option, FuncObj
             self.OCPEC = OCPEC;
             self.NLP = NLP;           
-            self.Option = Option;         
-            % properties: solver
-            NLP_Prob = struct('x', NLP.z, 'f', NLP.J, 'g', [NLP.h; NLP.c], 'p', NLP.s);           
-            NLP_Solver_Option = Option.NLP_Solver;
-            self.Solver = nlpsol('Solver', 'ipopt', NLP_Prob, NLP_Solver_Option);
-
+            self.Option = Option; 
+            self.FuncObj = self.create_FuncObj(); 
             disp('Done!')
         end
         
@@ -37,6 +33,9 @@ classdef IPOPT_Based_Solver < handle
     
     %% Other method
     methods
+        % create function Object
+        FuncObj = create_FuncObj(self) 
+
         % solve a sequence of parameterized NLP in a homotopy manner from s_Init to s_End 
         [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
 

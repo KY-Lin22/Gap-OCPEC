@@ -22,9 +22,6 @@ switch solver_type
     case 'IPOPT_Based'
         % create IPOPT_Based_Solver
         Solver_option = IPOPT_Based_Solver.create_Option();
-        Solver_option.NLP_Solver.ipopt.tol = 1e-8;% default 1e-8
-        Solver_option.NLP_Solver.ipopt.max_iter = 3000; % default 3000
-        Solver_option.NLP_Solver.ipopt.hessian_approximation = 'exact'; % 'exact' (default), 'limited-memory'
         Solver_option.Continuation.kappa_s_times = 0.1;
         Solver_option.Continuation.kappa_s_exp = 1;
         Solver_option.Continuation.tol.VI_nat_res = 1e-4;
@@ -40,9 +37,9 @@ switch solver_type
         Solver_option.Continuation.kappa_s_times = 0.8;
         Solver_option.Continuation.kappa_s_exp = 1;
         Solver_option.Continuation.sigma_Init = 1e-2;
-        Solver_option.Continuation.sigma_End = 1e-3;
-        Solver_option.Continuation.kappa_sigma_times = 0.9;
-        Solver_option.Continuation.kappa_sigma_exp = 1.1;
+        Solver_option.Continuation.sigma_End = 1e-6;
+        Solver_option.Continuation.kappa_sigma_times = 0.95;
+        Solver_option.Continuation.kappa_sigma_exp = 1.05;
         solver = DynSys_Based_Solver(OCPEC, NLP, Solver_option);
 end
 

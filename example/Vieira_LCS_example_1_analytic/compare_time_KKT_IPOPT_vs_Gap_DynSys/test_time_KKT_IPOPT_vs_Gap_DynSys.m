@@ -37,7 +37,7 @@ kappa_sigma_times = 0.9;
 kappa_sigma_exp = 1.0;
 % tolerance
 KKT_error_tol = 1e-6;
-VI_nat_res_tol = 1e-3;
+VI_nat_res_tol = 1e-2;
 % dynamical system parameter
 dtau = 0.001;
 epsilon = 1000;

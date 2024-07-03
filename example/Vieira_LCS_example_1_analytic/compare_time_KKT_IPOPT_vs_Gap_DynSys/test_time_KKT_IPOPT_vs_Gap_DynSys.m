@@ -3,7 +3,7 @@ clc
 
 %% create OCPEC (all simulation use the same OCPEC)
 timeHorizon = 1;
-nStages = 100;
+nStages = 1000;
 OCPEC = OCPEC_Vieira_LCS_analytic();
 OCPEC.timeHorizon = timeHorizon;
 OCPEC.nStages = nStages;
@@ -115,7 +115,7 @@ rec.z_Init = {};
 rec.z_Opt = {};
 rec.Info = {};
 % run
-repeat_num = 3;
+repeat_num = 1;
 for i = 1 : numel(solver_set)
     solver_i = solver_set{i};
     z_Init_i = ones(solver_i.NLP.Dim.z, 1);
@@ -132,23 +132,24 @@ save('Data_test_time_KKT_IPOPT_vs_Gap_DynSys.mat', 'rec')
 %% Print time
 Data_IPOPT_DynSys = load('Data_test_time_KKT_IPOPT_vs_Gap_DynSys');
 disp('-----------------------------------------------------------------------------------------------------------------------------------------')
-disp('  ID  | time(1:end)[s] | time(1)[s] | time(2:end)[s] | step | time(ave, 2:end)[s] |    cost    | KKT error  | VI_nat_res |  method name ')
+disp('  ID  |    cost    | KKT error  | VI_nat_res | time(1:end)[s] | time(1)[s] | time(2:end)[s] | step | time(ave, 2:end)[s] |  method name ')
 for i = 1 : numel(Data_IPOPT_DynSys.rec.name)
-    time_i    = Data_IPOPT_DynSys.rec.Info{i}.time;
-    timeLog_i = Data_IPOPT_DynSys.rec.Info{i}.Log.time;
-    step_i    = Data_IPOPT_DynSys.rec.Info{i}.continuationStepNum;
     cost_i      = Data_IPOPT_DynSys.rec.Info{i}.cost;
     KKT_error_i = Data_IPOPT_DynSys.rec.Info{i}.KKT_error;
     VI_natres_i = Data_IPOPT_DynSys.rec.Info{i}.VI_natural_residual;
+    time_i    = Data_IPOPT_DynSys.rec.Info{i}.time;
+    timeLog_i = Data_IPOPT_DynSys.rec.Info{i}.Log.time;
+    step_i    = Data_IPOPT_DynSys.rec.Info{i}.continuationStepNum;
+
     disp([' ',...
-        num2str(i, '%10.4d'),  ' |   ', ...
+        num2str(i, '%10.4d'),  ' | ', ...
+        num2str(cost_i, '%10.4d'), ' | ', ...
+        num2str(KKT_error_i, '%10.4d'), ' | ', ...
+        num2str(VI_natres_i, '%10.4d'), ' |   ', ...
         num2str(time_i, '%10.4e'), '   | ',...
         num2str(timeLog_i(1), '%10.4e'), ' |   ',...
         num2str(time_i - timeLog_i(1), '%10.4e'), '   | ',...
         num2str(step_i, '%10.4d'), ' |    ', ...
         num2str((time_i - timeLog_i(1))/step_i, '%10.4e'), '       | ', ...
-        num2str(cost_i, '%10.4d'), ' | ', ...
-        num2str(KKT_error_i, '%10.4d'), ' | ', ...
-        num2str(VI_natres_i, '%10.4d'), ' | ', ...
         Data_IPOPT_DynSys.rec.name{i}])
 end

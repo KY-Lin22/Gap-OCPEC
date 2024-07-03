@@ -3,7 +3,7 @@ clc
 
 %%
 timeHorizon = 1;
-nStages = 100;
+nStages = 1000;
 OCPEC = OCPEC_Vieira_LCS_analytic();
 OCPEC.timeHorizon = timeHorizon;
 OCPEC.nStages = nStages;
@@ -13,44 +13,45 @@ Data_converge_Gap_DynSys = load('Data_test_converge_Gap_DynSys');
 method_name = Data_converge_Gap_DynSys.rec.name;
 lineStyles = {'-','--',':','-.'};
 
-%% VI nature residual v.s. continuation step
+%% VI nature residual, KKT error, time/step v.s. continuation step
 figure(1)
-for i = 1 : numel(method_name) 
+for i = 1 : numel(method_name)
     Info_i = Data_converge_Gap_DynSys.rec.Info{i};
     continuationStepNum_i = Info_i.continuationStepNum;
-    semilogy(Info_i.Log.VI_nat_res(1 : continuationStepNum_i + 1), 'LineWidth', 2,  'LineStyle', lineStyles{mod(i,4) + 1})
+    semilogy(Info_i.Log.VI_nat_res(1 : continuationStepNum_i + 1), 'LineWidth', 2,  'LineStyle', lineStyles{mod(i,4) + 1})      
     hold on
 end
 grid on
-legend(method_name, 'Location','northeast', 'FontSize', 8)
-xlabel('Continuation step', 'FontSize', 11)
-ylabel('VI natural residual (max)', 'FontSize', 11)
 
-%% KKT error v.s. continuation step
+xlabel('Continuation step', 'FontSize', 11)
+ylabel('$ E_{VI} $', 'Interpreter','latex', 'FontSize', 11)
+legend(method_name, 'Location','northeast', 'FontSize', 8)
+
 figure(2)
-for i = 1 : numel(method_name)
+for i = 1 : numel(method_name) 
     Info_i = Data_converge_Gap_DynSys.rec.Info{i};
     continuationStepNum_i = Info_i.continuationStepNum;
     semilogy(Info_i.Log.KKT_error(1 : continuationStepNum_i + 1), 'LineWidth', 2,  'LineStyle', lineStyles{mod(i,4) + 1})
     hold on
 end
 grid on
-legend(method_name, 'Location','northeast', 'FontSize', 8)
-xlabel('Continuation step', 'FontSize', 11)
-ylabel('KKT error (max)', 'FontSize', 11)
 
-%% time v.s. continuation step
+xlabel('Continuation step', 'FontSize', 11)
+ylabel('$ E_{KKT} $', 'Interpreter','latex', 'FontSize', 11)
+legend(method_name, 'Location','northeast', 'FontSize', 8)
+
 figure(3)
-for i = 1 : numel(method_name)
+for i = 1 : numel(method_name) 
     Info_i = Data_converge_Gap_DynSys.rec.Info{i};
     continuationStepNum_i = Info_i.continuationStepNum;
     stairs(Info_i.Log.time(2 : continuationStepNum_i + 1), 'LineWidth', 2,  'LineStyle', lineStyles{mod(i,4) + 1})
     hold on
 end
 grid on
-legend(method_name, 'Location','northeast', 'FontSize', 8)
+
 xlabel('Continuation step', 'FontSize', 11)
-ylabel('Time Elapsed [s]', 'FontSize', 11)
+ylabel('Time [s]', 'Interpreter','latex', 'FontSize', 11)
+legend(method_name, 'Location','northeast', 'FontSize', 8)
 
 %% analytic optimal trajectory
 timeAxis = 0 : OCPEC.timeStep : OCPEC.nStages * OCPEC.timeStep;

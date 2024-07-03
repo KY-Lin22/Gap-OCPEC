@@ -3,7 +3,7 @@ clc
 
 %% create OCPEC (all simulation use the same OCPEC)
 timeHorizon = 1;
-nStages = 100;
+nStages = 1000;
 OCPEC = OCPEC_Vieira_LCS_analytic();
 OCPEC.timeHorizon = timeHorizon;
 OCPEC.nStages = nStages;
@@ -60,7 +60,7 @@ for i = 1 : numel(param_c)
     % create DynSys_Based_Solver
     solver_i = DynSys_Based_Solver(OCPEC, NLP_i, Solver_option_gap_DynSys);
     % save
-    solver_name{end + 1} = ['Gap (primal, c = ' num2str(param_c{i}),')',  ' DynSys-Based'];
+    solver_name{end + 1} = 'Gap (primal)';
     solver_set{end + 1} = solver_i;    
 end
 % solver set (D gap)
@@ -75,7 +75,7 @@ for i = 1 : numel(param_a)
     % create DynSys_Based_Solver
     solver_i = DynSys_Based_Solver(OCPEC, NLP_i, Solver_option_gap_DynSys);
     % save
-    solver_name{end + 1} =  ['Gap (D, a = ' num2str(param_a{i}) ', b = ' num2str(param_b{i}) ')', ' DynSys-Based'];
+    solver_name{end + 1} =  ['Gap (D, a = ' num2str(param_a{i}) ', b = ' num2str(param_b{i}) ')'];
     solver_set{end + 1} = solver_i;    
 end
 

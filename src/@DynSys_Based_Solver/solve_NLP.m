@@ -44,7 +44,6 @@ Y_Node = cumsum([self.NLP.Dim.z, self.NLP.Dim.h, self.NLP.Dim.c]);
 Log.param      = zeros(l_Max + 1, 2); % [s, sigma]
 Log.p_dot      = zeros(l_Max + 1, 1);
 Log.Y_dot      = zeros(l_Max + 1, 1);
-Log.GMRES_res  = zeros(l_Max + 1, 1);
 Log.cost       = zeros(l_Max + 1, 1);
 Log.KKT_res    = zeros(l_Max + 1, 1);
 Log.KKT_error  = zeros(l_Max + 1, 1); 
@@ -52,6 +51,7 @@ Log.VI_nat_res = zeros(l_Max + 1, 1);
 Log.time       = zeros(l_Max + 1, 1); 
 
 %% continuation loop (l: continuation step counter, Y_l: current iterate, Y: previous iterate)
+% continuously update Y, Y_dot, p, p_dot
 Y = zeros(Y_Node(3), 1);
 Y_dot = zeros(Y_Node(3), 1);
 p = zeros(2, 1);
@@ -77,10 +77,9 @@ while true
         timeElasped_Y = Info_integrator.time;
     end
     % evaluate time derivative of iterate Y_dot_l
-    Y_dot_l_Init = Y_dot; % initial guess for iterate solver (GMRES)
-    [Y_dot_l, Info_solve_Y_dot] = self.solve_differential_equation(Y_l, p_l, p_dot_l, Y_dot_l_Init);
-    GMRES_res_l = Info_solve_Y_dot.GMRES_res;
-    timeElasped_Y_dot = Info_solve_Y_dot.time;
+    timeStart_Y_dot = tic;
+    Y_dot_l = full(self.FuncObj.Y_dot(Y_l, p_l, p_dot_l));
+    timeElasped_Y_dot = toc(timeStart_Y_dot);
 
     %% step 2: record and print information of the current continuation step
     % extract variable and parameter
@@ -100,12 +99,11 @@ while true
         min([zeros(self.NLP.Dim.c, 1), c_l], [], 2);...
         min([zeros(self.NLP.Dim.c, 1), gamma_c_l], [], 2);...
         c_l .* gamma_c_l], inf);
-    VI_nat_res_l = self.evaluate_natural_residual(Y_l(1 : Y_Node(1), 1));
+    VI_nat_res_l = self.evaluate_natural_residual(z_l);
     % record
     Log.param(l + 1, :) = p_l';  
     Log.p_dot(l + 1, :) = norm(p_dot_l, inf);
     Log.Y_dot(l + 1, :) = norm(Y_dot_l, inf);
-    Log.GMRES_res(l + 1, :) = GMRES_res_l;
     Log.cost(l + 1, :) = J_l;
     Log.KKT_res(l + 1, :) = KKT_res_l;
     Log.KKT_error(l + 1, :) = KKT_error_l;
@@ -114,7 +112,7 @@ while true
     % print
     if mod(l, 10) ==  0
         disp('--------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = '  StepNum |    s     |   sigma  |   p_dot  |   Y_dot  | GMRES_res |   cost   | KKT_res  | KKT_error | VI_nat_res | time[s] ';
+        headMsg = '  StepNum |    s     |   sigma  |   p_dot  |   Y_dot  |   cost   | KKT_res  | KKT_error | VI_nat_res | time[s] ';
         disp(headMsg)
     end
     continuation_Step_Msg = ['  ',...
@@ -122,7 +120,6 @@ while true
         num2str(Log.param(l + 1, 1), '%10.2e'),' | ', num2str(Log.param(l + 1, 2), '%10.2e'),' | ',...
         num2str(Log.p_dot(l + 1),'%10.2e'), ' | ',...
         num2str(Log.Y_dot(l + 1),'%10.2e'), ' | ',...
-        num2str(Log.GMRES_res(l + 1),'%10.2e'), '  | ',...
         num2str(Log.cost(l + 1),'%10.2e'), ' | ',...
         num2str(Log.KKT_res(l + 1), '%10.2e'), ' | ',...
         num2str(Log.KKT_error(l + 1), '%10.2e'), '  |  ',...

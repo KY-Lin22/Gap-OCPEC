@@ -10,23 +10,6 @@ Option.KKT.RegParam.nu_H = 1e-6; % non-positive definite of Hessian matrix
 % Lagrangian Hessian approximation
 Option.KKT.Hessian_approximation = 'Exact'; % 'Exact', 'Gauss_Newton', 'Quasi_Newton'
 
-%% Option for stage 1: solve first parameterized NLP by non-interior-point (NIP) method
-Option.NIP.printLevel = 2; % 0: print nothing;  
-                       % 1: print results
-                       % 2: print results and iteration log (should specified recordLevel as 1)
-% tolerance
-Option.NIP.maxIterNum = 300;
-Option.NIP.tol.KKT_error = 1e-2;
-Option.NIP.tol.dYNorm = 1e-6;
-% evaluate search direction
-
-% merit line search
-Option.NIP.LineSearch.beta_Init = 1; % initial penalty parameter
-Option.NIP.LineSearch.rho = 0.1; % desired extend for the negativity of merit function directional derivative
-Option.NIP.LineSearch.stepSize_Min = 1e-4;
-Option.NIP.LineSearch.stepSize_DecayRate = 0.5;% choose in (0,1)
-Option.NIP.LineSearch.nu_D = 1e-4;% desired merit function reduction, default 1e-4 
-
 %% Option for stage 1: solve first parameterized NLP by IPOPT (ref: https://coin-or.github.io/Ipopt/OPTIONS.html)
 % print
 Option.IPOPT_Solver.print_time = true;
@@ -45,24 +28,18 @@ Option.IPOPT_Solver.ipopt.mu_strategy = 'monotone'; % default: 'monotone', 'adap
 % fictitious time and stabilization parameter
 Option.Continuation.dtau = 0.001;
 Option.Continuation.epsilon = 1000;
-% method to solve the first parameterized NLP and differential equation
-Option.Continuation.first_NLP_solve = 'IPOPT'; % 'non_interior_point', 'IPOPT'
-Option.Continuation.differential_equation_solve = 'direct'; % 'FDGMRES', 'direct'
 % method to integrating the differential equation
 Option.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
 % tolerance
 Option.Continuation.tol.KKT_error = 1e-4;
 Option.Continuation.tol.VI_nat_res = 1e-4;
-% homotopy (relaxation parameter)
+% Continuation (relaxation parameter)
 Option.Continuation.kappa_s_times = 0.8; % update
 Option.Continuation.kappa_s_exp = 1; % update
-% homotopy (smoothing parameter)
-Option.Continuation.sigma_Init = 1e-1;
-Option.Continuation.sigma_End = 1e-3;
+% Continuation (smoothing parameter)
+Option.Continuation.sigma_Init = 1e-2;
+Option.Continuation.sigma_End = 1e-6;
 Option.Continuation.kappa_sigma_times = 0.8; % update
-Option.Continuation.kappa_sigma_exp = 1.2; % update
-% FDGMRES method
-Option.Continuation.FDGMRES.h_FD = 1e-9; % stepsize of forward difference approximation for the product of Jacobians and vectors
-Option.Continuation.FDGMRES.k_max = 10; % GMRES max iteration number
+Option.Continuation.kappa_sigma_exp = 1; % update
 
 end

@@ -13,11 +13,6 @@ sigma = MX.sym('sigma', 1, 1);
 % vector that collects variable and parameter
 Y = [self.NLP.z; gamma_h; gamma_c];
 p = [self.NLP.s, sigma];
-% dz, dgamma_h, dgamma_c
-dz = MX.sym('dz', self.NLP.Dim.z, 1);
-dgamma_h = MX.sym('dgamma_h', self.NLP.Dim.h, 1);
-dgamma_c = MX.sym('dgamma_c', self.NLP.Dim.c, 1);
-dY = [dz; dgamma_h; dgamma_c];
 % p_dot
 p_dot = MX.sym('p_dot', 2, 1);
 
@@ -71,14 +66,6 @@ PSI = psi_FuncObj(self.NLP.c, gamma_c, sigma);
 PSI_grad_z = jacobian(PSI, self.NLP.z);
 PSI_grad_gamma_c = jacobian(PSI, gamma_c);
 
-%% line search in non-interior-point method
-% constraint violation M
-M = [self.NLP.h; PSI];
-FuncObj.M = Function('M', {Y, p}, {M}, {'Y', 'p'}, {'M'});
-% directional derivative of cost 
-J_grad_times_dz = J_grad * dz;
-FuncObj.J_grad_times_dz = Function('J_grad_times_dz', {Y, dY}, {J_grad_times_dz}, {'Y', 'dY'}, {'J_grad_times_dz'});
-
 %% KKT residual and matrix
 % KKT residual
 KKT_residual = [LAG_grad'; self.NLP.h; PSI];
@@ -91,7 +78,6 @@ KKT_matrix = ...
     [LAG_hessian + nu_H * MX.eye(self.NLP.Dim.z), h_grad',                            -c_grad';...
     h_grad,                                       -nu_h * MX.eye(self.NLP.Dim.h),     MX(self.NLP.Dim.h, self.NLP.Dim.c);...
     PSI_grad_z,                                   MX(self.NLP.Dim.c, self.NLP.Dim.h), PSI_grad_gamma_c - nu_c * MX.eye(self.NLP.Dim.c)];
-FuncObj.KKT_matrix = Function('KKT_matrix', {Y, p}, {KKT_matrix}, {'Y', 'p'}, {'KKT_matrix'});
 
 %% sensitivity matrix (w.r.t. parameter)
 % lagrangian gradient (w.r.t. s)

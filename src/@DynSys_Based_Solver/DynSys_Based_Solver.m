@@ -44,26 +44,11 @@ classdef DynSys_Based_Solver < handle
         % evaluate natural residual
         natRes = evaluate_natural_residual(self, z_Opt)
 
-        %% stage 1: evaluate first iterate by solving first parameterized NLP
-        % main function of solving first parameterized NLP
+        % stage 1: evaluate first iterate by solving first parameterized NLP
         [Y, Info] = solve_first_NLP(self, z_Init, p)
 
-        % non-interior-point method
-        [z_Opt, Info] = non_interior_point_method(self, z_Init, p) 
-
-        % merit line search in non-interior-point method
-        [Y_k, Info] = LineSearch_Merit(self, beta, Y, p, dY);
-
-        %% stage 2: evaluate new iterate by integrating a differential equation
-        % evaluate new iterate by integration
+        % stage 2: evaluate new iterate by integrating a differential equation
         [Y_l, Info] = integrate_differential_equation(self, Y, Y_dot, p, p_dot, p_l, p_dot_l)
-
-        % solving differential equation
-        [Y_dot, Info] = solve_differential_equation(self, Y, p, p_dot, Y_dot_Init)
-
-        % FDGMRES method
-
-
 
     end
 

@@ -4,7 +4,7 @@ clear all
 clc
 
 % run test (it needs about 7 hours)
-[Rec, solver_name] = run_test_KKT_IPOPT_vs_Gap_DynSys();
+% [Rec, solver_name] = run_test_KKT_IPOPT_vs_Gap_DynSys();
 
 save('Data_performance_test.mat', 'Rec', 'solver_name')
 
@@ -12,7 +12,7 @@ save('Data_performance_test.mat', 'Rec', 'solver_name')
 Data_performance_test = load('Data_performance_test.mat');
 
 %
-performance_matrix = Data_performance_test.Rec.time_1;
+performance_matrix = Data_performance_test.Rec.time;
 solver_name = Data_performance_test.solver_name;
 
 %

@@ -21,12 +21,9 @@ OCPEC_func_handle = {...
     @Vieira_LCS_Init_Peak_Without_Penalty;...
     @Vieira_LCS_Control_Jump_With_Penalty_1;...
     @Vieira_LCS_Control_Jump_With_Penalty_2;...
-    @Vieira_LCS_Control_Jump_Without_Penalty;...
-    @Vieira_LCS_State_Jump_With_Penalty_1;...
-    @Vieira_LCS_State_Jump_With_Penalty_2;...
-    @Vieira_LCS_State_Jump_Without_Penalty};
+    @Vieira_LCS_Control_Jump_Without_Penalty};
 
-nStages_sequ = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
+nStages_sequ = {100, 200, 300, 400, 500};
 
 %% relaxed NLP reformulation to be tested
 NLP_option_set = {};
@@ -66,7 +63,16 @@ end
 
 %% solver option set
 % DynSys-Based integration method
-integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
+integration_method = 'explitic_Euler'; % 'explitic_Euler', 'RK4'
+% dynamical system parameter
+dtau = 0.001;
+epsilon = 1000;
+% tolerance
+KKT_error_tol = 1e-4;
+VI_nat_res_tol = 1e-2;
+% relaxation parameter init and end value
+s_Init = 1e0;
+s_End = 1e-12;
 % FB smoothing parameter init and end value
 sigma_Init = 1e-2;
 sigma_End = 1e-6;
@@ -76,12 +82,6 @@ kappa_s_times_gap = 0.9;% slow
 kappa_s_exp = 1.0;
 kappa_sigma_times = 0.9;
 kappa_sigma_exp = 1.0;
-% tolerance
-KKT_error_tol = 1e-6;
-VI_nat_res_tol = 1e-2;
-% dynamical system parameter
-dtau = 0.001;
-epsilon = 1000;
 
 % init
 solver_option_set = {};
@@ -123,7 +123,7 @@ end
 % DynSys-based solver for D gap reformulation
 for i = 1 : numel(param_a)
     solver_option_set{end + 1} = Solver_option_gap_DynSys;
-    solver_name{end + 1} = [D_gap_name{i} 'DynSys-Based'];
+    solver_name{end + 1} = [D_gap_name{i} ' DynSys-Based'];
     solver_type{end + 1} = 'DynSys-Based';
 end
 
@@ -131,9 +131,6 @@ end
 solver_set = create_solver_set(OCPEC_func_handle, nStages_sequ, NLP_option_set, solver_option_set, solver_type);
 
 %% run test
-% relaxation parameter init and end value
-s_Init = 1e0;
-s_End = 1e-16;
 param_set = {};
 for i = 1 : (numel(KKT_relaxation_strategy) + numel(param_c) + numel(param_a))
     param_set{end + 1} = struct('s_Init', s_Init, 's_End', s_End);

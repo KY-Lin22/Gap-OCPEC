@@ -71,7 +71,7 @@ while true
     % check status
     if Info_LineSearch.status == 0
         % failure case 2: line search fails
-        terminal_status = -1;
+        terminal_status = 0;
         terminal_msg = ['- Solver fails: ', 'because merit line search reaches the min stepsize'];        
         break
     else

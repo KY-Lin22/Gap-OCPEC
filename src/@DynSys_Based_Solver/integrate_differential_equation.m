@@ -7,8 +7,9 @@ function [Y_l, Info] = integrate_differential_equation(self, Y, Y_dot, p, p_dot,
 timeStart = tic;
 
 dtau = self.Option.Continuation.dtau;
-if Y_dot > 1e10
+if norm(Y_dot, inf) > 1e10
     % set as fail case: extremely large Y_dot may lead to divergence
+    Y_l = Y;
     terminal_status = 0;
     terminal_msg = ['- Solver fails: ', 'because Y_dot is extremely large, which may lead to divergence']; 
 else

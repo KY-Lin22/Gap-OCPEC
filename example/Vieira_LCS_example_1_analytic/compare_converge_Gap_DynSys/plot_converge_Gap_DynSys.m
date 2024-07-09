@@ -44,6 +44,19 @@ figure(3)
 for i = 1 : numel(method_name) 
     Info_i = Data_converge_Gap_DynSys.rec.Info{i};
     continuationStepNum_i = Info_i.continuationStepNum;
+    semilogy(Info_i.Log.KKT_res(1 : continuationStepNum_i + 1), 'LineWidth', 2,  'LineStyle', lineStyles{mod(i,4) + 1})
+    hold on
+end
+grid on
+
+xlabel('Continuation step', 'FontSize', 11)
+ylabel('$ KKT residual $', 'Interpreter','latex', 'FontSize', 11)
+legend(method_name, 'Location','northeast', 'FontSize', 8)
+
+figure(4)
+for i = 1 : numel(method_name) 
+    Info_i = Data_converge_Gap_DynSys.rec.Info{i};
+    continuationStepNum_i = Info_i.continuationStepNum;
     stairs(Info_i.Log.time(2 : continuationStepNum_i + 1), 'LineWidth', 2,  'LineStyle', lineStyles{mod(i,4) + 1})
     hold on
 end
@@ -59,7 +72,7 @@ F_FuncObj_map = OCPEC.FuncObj.F.map(OCPEC.nStages);
 [X_analytic_Opt, U_analytic_Opt, LAMBDA_analytic_Opt] = compute_analytic_optimal_trajectory(OCPEC);
 F_analytic_Opt = full(F_FuncObj_map(X_analytic_Opt, U_analytic_Opt, LAMBDA_analytic_Opt));
 
-figure(4)
+figure(5)
 subplot(4,1,1)
 plot(timeAxis, [OCPEC.x0, X_analytic_Opt], 'r', 'LineWidth',1.5)
 legend('$ x^{*}_{ana}(t)$', 'Interpreter','latex', 'FontSize', 11)
@@ -76,7 +89,7 @@ xlabel('time [s]')
 
 %% error between obtained numerical optimal trajectory and analytic optimal trajectory 
 z_Node = cumsum([OCPEC.Dim.x, OCPEC.Dim.u, OCPEC.Dim.lambda, OCPEC.Dim.lambda]);
-figure(5)
+figure(6)
 for i = 1 : numel(method_name)
     z_Opt_i = Data_converge_Gap_DynSys.rec.z_Opt{i};
     Z_Opt_i = reshape(z_Opt_i, [], OCPEC.nStages);

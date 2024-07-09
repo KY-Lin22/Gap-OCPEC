@@ -83,7 +83,7 @@ while true
     Log.p_dot(l + 1, :) = norm(full(self.FuncObj.p_dot(p_l)), inf);
     Log.Y_dot(l + 1, :) = norm(full(self.FuncObj.Y_dot(Y_l, p_l)), inf);
     Log.cost(l + 1, :) = J_l;
-    Log.KKT_res(l + 1, :) = norm(KKT_residual_l, inf);
+    Log.KKT_res(l + 1, :) = norm(KKT_residual_l, 2)/self.OCPEC.nStages;
     Log.KKT_error(l + 1, :) = KKT_error_l;
     Log.VI_nat_res(l + 1, :) = VI_nat_res_l;
     Log.time(l + 1, :) = timeElasped_l;

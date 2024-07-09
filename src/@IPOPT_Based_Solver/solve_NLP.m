@@ -1,5 +1,5 @@
-function [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
-% solve parameterized NLP by IPOPT using continuation method
+function [z_Opt, Info] = solve_NLP(self, z_Init)
+% solve parameterized NLP by solver using IPOPT with continuation method
 % NLP has the form:
 %  min  J(z),
 %  s.t. h(z) = 0,
@@ -8,39 +8,25 @@ function [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
 %        s is the parameter,
 %        J is the cost, and h, c are the constraints
 % Syntax:
-%          [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
-%          [z_Opt, Info] = self.solve_NLP(z_Init, s_Init, s_End)
+%          [z_Opt, Info] = solve_NLP(self, z_Init)
+%          [z_Opt, Info] = self.solve_NLP(z_Init)
 % Argument:
 %          z_Init: double, NLP.Dim.z X 1, initial guess
-%          s_Init: double, relaxation parameter (initial)
-%          s_End: double, relaxation parameter (end)
 % Output:
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information
-
 import casadi.*
 
 %% check input
-% check input z_Init
 if ~all(size(z_Init) == [self.NLP.Dim.z, 1])
     error('z_Init has wrong dimension')
-end
-% check relaxation parameter 
-if (~isscalar(s_Init)) || (s_Init < 0)
-    error('s_Init should be a nonnegative scalar')
-end
-if (~isscalar(s_End)) || (s_End < 0)
-    error('s_End should be a nonnegative scalar')
-end
-if s_Init < s_End
-    error('s_Init should not smaller than s_End')
 end
 
 %% Initialization
 % create parameter sequence
-[S, l_Max] = self.create_parameter_sequence(s_Init, s_End);
+[S, l_Max] = self.create_parameter_sequence();
 % create record 
-Log.param      = zeros(l_Max + 1, 1);
+Log.p          = zeros(l_Max + 1, 1);
 Log.cost       = zeros(l_Max + 1, 1);
 Log.KKT_error  = zeros(l_Max + 1, 1); % max([primal, dual])
 Log.VI_nat_res = zeros(l_Max + 1, 1);
@@ -48,8 +34,8 @@ Log.iterNum    = zeros(l_Max + 1, 1);
 Log.time       = zeros(l_Max + 1, 1); 
 
 %% continuation loop (l: continuation step counter, z_l: current iterate, z: previous iterate)
-z = z_Init;
 l = 0;
+z = z_Init;
 while true
     %% step 1: evaluate iterate at current continuation step
     % specify parameter s_l
@@ -83,7 +69,7 @@ while true
 
     %% step 2: record and print information of the current continuation step
     % record
-    Log.param(l + 1, :) = s_l;
+    Log.p(l + 1, :) = s_l;
     Log.cost(l + 1, :) = J_l;
     Log.KKT_error(l + 1, :) = KKT_error_l;
     Log.VI_nat_res(l + 1, :) = VI_nat_res_l;
@@ -96,7 +82,7 @@ while true
     end
     continuation_Step_Msg = ['  ',...
         num2str(l,'%10.3d'), '/', num2str(l_Max,'%10.3d'),' | ',...
-        num2str(Log.param(l + 1, 1), '%10.1e'), ' | ',...
+        num2str(Log.p(l + 1, 1), '%10.1e'), ' | ',...
         num2str(Log.cost(l + 1), '%10.2e'), ' | ',...
         num2str(KKT_error_primal_l, '%10.1e'), ' ', num2str(KKT_error_dual_l, '%10.1e'),' | ',...
         num2str(min(stepSize_primal_l), '%10.1e'), ' ', num2str(sum(stepSize_primal_l)/iterNum_l, '%10.1e'), ' | ',...
@@ -124,8 +110,8 @@ while true
         break
     else
         % this continuation step finds the optimal solution, prepare for next step
-        z = z_l;
         l = l + 1;
+        z = z_l;       
     end
 
 end

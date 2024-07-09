@@ -24,11 +24,14 @@ Option.IPOPT_Solver.ipopt.hessian_approximation = 'exact'; % 'exact' (default), 
 % Option.NLP_Solver.ipopt.bound_relax_factor = 0;
 
 %% option for continuation method
+% Continuation (relaxation parameter)
+Option.Continuation.s_Init = 1e0;
+Option.Continuation.s_End = 1e-12;
+% update relaxation parameter
+Option.Continuation.kappa_s_times = 0.1; 
+Option.Continuation.kappa_s_exp = 1; 
 % tolerance
 Option.Continuation.tol.VI_nat_res = 1e-4;
-% relaxation parameter
-Option.Continuation.kappa_s_times = 0.8; % update
-Option.Continuation.kappa_s_exp = 1; % update
 
 end
 

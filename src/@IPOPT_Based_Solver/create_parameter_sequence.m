@@ -1,8 +1,10 @@
-function [S, l_Max] = create_parameter_sequence(self, s_Init, s_End)
+function [S, l_Max] = create_parameter_sequence(self)
 %UNTITLED30 Summary of this function goes here
 %   Detailed explanation goes here
 
 % load parameter
+s_Init = self.Option.Continuation.s_Init;
+s_End = self.Option.Continuation.s_End;
 kappa_s_times = self.Option.Continuation.kappa_s_times;
 kappa_s_exp = self.Option.Continuation.kappa_s_exp;
 % evaluate parameter sequence and the max number of continuation step

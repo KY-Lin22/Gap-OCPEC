@@ -1,5 +1,5 @@
 classdef IPOPT_Based_Solver < handle
-    %Implementation of IPOPT with continuation method which solves the following NLP problem:
+    %Implementation of solver using IPOPT with continuation method which solves the following NLP problem:
     %  min  J(z),
     %  s.t. h(z) = 0,
     %       c(z, s) >= 0
@@ -19,7 +19,6 @@ classdef IPOPT_Based_Solver < handle
         function self = IPOPT_Based_Solver(OCPEC, NLP, Option)
             %IPOPT_Based_Solver Construct an instance of this class
             %   Detailed explanation goes here
-            import casadi.*
             disp('creating solver...')
             % initialize properties: OCPEC, NLP, Option, FuncObj
             self.OCPEC = OCPEC;
@@ -27,8 +26,7 @@ classdef IPOPT_Based_Solver < handle
             self.Option = Option; 
             self.FuncObj = self.create_FuncObj(); 
             disp('Done!')
-        end
-        
+        end      
     end
     
     %% Other method
@@ -36,11 +34,11 @@ classdef IPOPT_Based_Solver < handle
         % create function Object
         FuncObj = create_FuncObj(self) 
 
-        % solve a sequence of parameterized NLP in a homotopy manner from s_Init to s_End 
-        [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
+        % main function of solver using IPOPT with continuation method
+        [z_Opt, Info] = solve_NLP(self, z_Init)
 
         % create parameter sequence
-        [S, l_Max] = create_parameter_sequence(self, s_Init, s_End)
+        [S, l_Max] = create_parameter_sequence(self)
 
         % evaluate natural residual
         natRes = evaluate_natural_residual(self, z_Opt)  

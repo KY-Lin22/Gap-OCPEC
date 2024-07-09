@@ -6,8 +6,8 @@ clc
 OCPEC = OCPEC_Vieira_LCS_analytic();
 
 % discretize OCPEC into a NLP problem
-NLP_option.relaxation_problem = 'gap_constraint_based'; % 'gap_constraint_based', 'KKT_based'
-NLP_option.gap_constraint_relaxation_strategy = 'generalized_D_gap'; % 'generalized_primal_gap', 'generalized_D_gap'
+NLP_option.relaxation_problem = 'KKT_based'; % 'gap_constraint_based', 'KKT_based'
+NLP_option.gap_constraint_relaxation_strategy = 'generalized_primal_gap'; % 'generalized_primal_gap', 'generalized_D_gap'
 NLP_option.KKT_complementarity_relaxation_strategy = 'Scholtes'; % 'Scholtes', 'Lin_Fukushima', 'Kadrani', 'Steffensen_Ulbrich', 'Kanzow_Schwartz'
 NLP_option.gap_func_implementation = 'symbolic'; % 'symbolic', 'codegen_fd', 'codegen_jac'
 NLP_option.strongly_convex_func = 'quadratic';
@@ -22,6 +22,8 @@ switch solver_type
     case 'IPOPT_Based'
         % create IPOPT_Based_Solver
         Solver_option = IPOPT_Based_Solver.create_Option();
+        Solver_option.Continuation.s_Init = 1e0;
+        Solver_option.Continuation.s_End = 1e-12;
         Solver_option.Continuation.kappa_s_times = 0.1; % fast update
         Solver_option.Continuation.kappa_s_exp = 1;
         Solver_option.Continuation.tol.VI_nat_res = 1e-4;
@@ -29,29 +31,26 @@ switch solver_type
     case 'DynSys_Based'
         % create DynSys_Based_Solver
         Solver_option = DynSys_Based_Solver.create_Option();
-        Solver_option.Continuation.dtau = 0.001;
-        Solver_option.Continuation.epsilon = 1000;
+        Solver_option.Continuation.s_Init = 1e0;
+        Solver_option.Continuation.s_End = 1e-12;
+        Solver_option.Continuation.sigma_Init = 1e-2;
+        Solver_option.Continuation.sigma_End = 1e-6;
+        Solver_option.Continuation.epsilon_T = 100;
+        Solver_option.Continuation.epsilon_p = 50;
+        Solver_option.Continuation.dtau = 0.01;
+        Solver_option.Continuation.l_Max = 500;
         Solver_option.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
         Solver_option.Continuation.tol.KKT_error = 1e-6;
         Solver_option.Continuation.tol.VI_nat_res = 1e-4;
-        Solver_option.Continuation.kappa_s_times = 0.9; % slow update
-        Solver_option.Continuation.kappa_s_exp = 1.0;
-        Solver_option.Continuation.sigma_Init = 1e-2;
-        Solver_option.Continuation.sigma_End = 1e-6;
-        Solver_option.Continuation.kappa_sigma_times = 0.9;
-        Solver_option.Continuation.kappa_sigma_exp = 1.1;
         solver = DynSys_Based_Solver(OCPEC, NLP, Solver_option);
 end
 
 %% parameter and problem solve
 % create initial guess
 z_Init = ones(NLP.Dim.z, 1);
-% parameter
-s_Init = 1e0;
-s_End = 1e-16; 
 
 % solve
-[z_Opt, Info] = solver.solve_NLP(z_Init, s_Init, s_End);
+[z_Opt, Info] = solver.solve_NLP(z_Init);
 
 %% show result
 plotResult_Vieira_LCS_analytic(OCPEC, NLP, z_Opt)

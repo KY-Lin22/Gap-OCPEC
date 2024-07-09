@@ -9,38 +9,22 @@ OCPEC.timeHorizon = timeHorizon;
 OCPEC.nStages = nStages;
 OCPEC.timeStep = OCPEC.timeHorizon ./ OCPEC.nStages;
 
-%% specify NLP and solver parameter
+%% specify NLP and common solver parameter
 % KKT relaxation strategy for all update
 KKT_relaxation_strategy = {'Scholtes', 'Lin_Fukushima', 'Kadrani', ...
     'Steffensen_Ulbrich', 'Kanzow_Schwartz'};
-KKT_IPOPT_name = {...
-    'KKT (Scholtes), IPOPT-based',...
-    'KKT (Lin-Fukushima), IPOPT-based',...
-    'KKT (Kadrani), IPOPT-based', ...
-    'KKT (Steffensen-Ulbrich), IPOPT-based',...
-    'KKT (Kanzow-Schwartz), IPOPT-based'};
+KKT_IPOPT_name = {'KKT (Scholtes)','KKT (LF)','KKT (Kadrani)', ...
+    'KKT (SU)','KKT (KS)'};
 % primal gap parameter
 param_c = {1};
 % D gap parameter
 param_a = {0.1, 0.3, 0.5, 0.7, 0.9};
 param_b = {10,  3.3, 2,   1.4, 1.1};
-% parameter init and end value
+% common solver parameter
 s_Init = 1e0;
-s_End = 1e-16;
-sigma_Init = 1e-2;
-sigma_End = 1e-6;
-% parameter update
-kappa_s_times_KKT = 0.1;% fast
-kappa_s_times_gap = 0.9;% slow
-kappa_s_exp = 1.0;
-kappa_sigma_times = 0.9;
-kappa_sigma_exp = 1.0;
-% tolerance
-KKT_error_tol = 1e-6;
+s_End = 1e-12;
 VI_nat_res_tol = 1e-2;
-% dynamical system parameter
-dtau = 0.001;
-epsilon = 1000;
+
 % init
 solver_name = {};
 solver_set = {};
@@ -48,8 +32,10 @@ solver_set = {};
 %% create solver set (KKT, IPOPT_Based)
 % solver option
 Solver_option_KKT_IPOPT = IPOPT_Based_Solver.create_Option();
-Solver_option_KKT_IPOPT.Continuation.kappa_s_times = kappa_s_times_KKT;
-Solver_option_KKT_IPOPT.Continuation.kappa_s_exp = kappa_s_exp;
+Solver_option_KKT_IPOPT.Continuation.s_Init = s_Init;
+Solver_option_KKT_IPOPT.Continuation.s_End = s_End;
+Solver_option_KKT_IPOPT.Continuation.kappa_s_times = 0.1;
+Solver_option_KKT_IPOPT.Continuation.kappa_s_exp = 1.0;
 Solver_option_KKT_IPOPT.Continuation.tol.VI_nat_res = VI_nat_res_tol;
 % solver set
 for i = 1 : numel(KKT_relaxation_strategy)
@@ -60,30 +46,30 @@ for i = 1 : numel(KKT_relaxation_strategy)
     % create IPOPT_Based_Solver
     solver_i = IPOPT_Based_Solver(OCPEC, NLP_i, Solver_option_KKT_IPOPT);
     % save
-    solver_name{end + 1} = KKT_IPOPT_name{i};
+    solver_name{end + 1} = [KKT_IPOPT_name{i}, ' IPOPT-based'];
     solver_set{end + 1} = solver_i;    
 end
 
 %% create solver set (gap, DynSys_Based)
 % solver option
 Solver_option_gap_DynSys = DynSys_Based_Solver.create_Option();
-Solver_option_gap_DynSys.Continuation.dtau = dtau;
-Solver_option_gap_DynSys.Continuation.epsilon = epsilon;
+Solver_option_gap_DynSys.Continuation.s_Init = s_Init;
+Solver_option_gap_DynSys.Continuation.s_End = s_End;
+Solver_option_gap_DynSys.Continuation.sigma_Init = 1e-2;
+Solver_option_gap_DynSys.Continuation.sigma_End = 1e-6;
+Solver_option_gap_DynSys.Continuation.epsilon_T = 100;
+Solver_option_gap_DynSys.Continuation.epsilon_p = 50;
+Solver_option_gap_DynSys.Continuation.dtau = 0.01;
+Solver_option_gap_DynSys.Continuation.l_Max = 500;
 Solver_option_gap_DynSys.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
-Solver_option_gap_DynSys.Continuation.tol.KKT_error = KKT_error_tol;
+Solver_option_gap_DynSys.Continuation.tol.KKT_error = 1e-6;
 Solver_option_gap_DynSys.Continuation.tol.VI_nat_res = VI_nat_res_tol;
-Solver_option_gap_DynSys.Continuation.kappa_s_times = kappa_s_times_gap;
-Solver_option_gap_DynSys.Continuation.kappa_s_exp = kappa_s_exp;
-Solver_option_gap_DynSys.Continuation.sigma_Init = sigma_Init;
-Solver_option_gap_DynSys.Continuation.sigma_End = sigma_End;
-Solver_option_gap_DynSys.Continuation.kappa_sigma_times = kappa_sigma_times;
-Solver_option_gap_DynSys.Continuation.kappa_sigma_exp = kappa_sigma_exp;
+
 % solver set (primal gap)
 for i = 1 : numel(param_c)
     % discretize OCPEC into a NLP problem
     NLP_option_i.relaxation_problem = 'gap_constraint_based'; 
     NLP_option_i.gap_constraint_relaxation_strategy = 'generalized_primal_gap'; 
-    NLP_option_i.gap_func_implementation = 'symbolic';
     NLP_option_i.primal_gap_param_c = param_c{i};
     NLP_i = NLP_Formulation(OCPEC, NLP_option_i);
     % create DynSys_Based_Solver
@@ -97,7 +83,6 @@ for i = 1 : numel(param_a)
     % discretize OCPEC into a NLP problem
     NLP_option_i.relaxation_problem = 'gap_constraint_based'; 
     NLP_option_i.gap_constraint_relaxation_strategy = 'generalized_D_gap'; 
-    NLP_option_i.gap_func_implementation = 'symbolic';
     NLP_option_i.D_gap_param_a = param_a{i};
     NLP_option_i.D_gap_param_b = param_b{i};
     NLP_i = NLP_Formulation(OCPEC, NLP_option_i);
@@ -121,7 +106,7 @@ for i = 1 : numel(solver_set)
     z_Init_i = ones(solver_i.NLP.Dim.z, 1);
     % solve
     for j = 1 : repeat_num
-        [z_Opt_i, Info_i] = solver_i.solve_NLP(z_Init_i, s_Init, s_End);
+        [z_Opt_i, Info_i] = solver_i.solve_NLP(z_Init_i);
     end    
     rec.z_Init{end + 1} = z_Init_i;
     rec.z_Opt{end + 1} = z_Opt_i;

@@ -12,16 +12,12 @@ p_Init = [s_Init; sigma_Init];
 p_End = [s_End; sigma_End];
 
 % time parameter
-dtau = 0.001;
-T = 1;
-l_Max = 1000;
+dtau = 0.01;
+l_Max = 500;
 % parameter dynamical system
-kappa_s = 100;
-kappa_sigma = 100;
-kappa = diag([kappa_s, kappa_sigma]);
-
+eplison_p = 5;
 p_sym = SX.sym('p_sym', 2, 1);
-p_dot_sym = -kappa*(p_sym - p_End);
+p_dot_sym = -eplison_p*(p_sym - p_End);
 p_dot_FuncObj = Function('p_dot', {p_sym}, {p_dot_sym}, {'p'}, {'p_dot'});
 
 % evaluate parameter sequence 

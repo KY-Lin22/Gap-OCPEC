@@ -60,7 +60,7 @@ switch self.OCPEC.VISetType
 end
 
 %% evaluate natural residual
-natRes = norm(reshape(LAMBDA_Opt - proj_w_Opt, [], 1), inf);
+natRes = reshape(LAMBDA_Opt - proj_w_Opt, [], 1);
 
 end
 

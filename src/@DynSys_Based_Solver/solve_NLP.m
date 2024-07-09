@@ -77,7 +77,7 @@ while true
         min([zeros(self.NLP.Dim.c, 1), c_l], [], 2);...
         min([zeros(self.NLP.Dim.c, 1), gamma_c_l], [], 2);...
         c_l .* gamma_c_l], inf);
-    VI_nat_res_l = self.evaluate_natural_residual(z_l);
+    VI_nat_res_l = norm(self.evaluate_natural_residual(z_l), inf);
     % record
     Log.p(l + 1, :) = p_l';  
     Log.p_dot(l + 1, :) = norm(full(self.FuncObj.p_dot(p_l)), inf);

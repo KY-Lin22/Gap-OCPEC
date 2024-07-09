@@ -54,7 +54,7 @@ while true
     KKT_error_dual_l = self.FuncObj.IPOPT_Solver.stats.iterations.inf_du(end); 
     KKT_error_l = max([KKT_error_primal_l, KKT_error_dual_l]);
     
-    VI_nat_res_l = self.evaluate_natural_residual(z_l);
+    VI_nat_res_l = norm(self.evaluate_natural_residual(z_l), inf);
 
     stepSize_primal_l = self.FuncObj.IPOPT_Solver.stats.iterations.alpha_pr(2:end);
     stepSize_dual_l = self.FuncObj.IPOPT_Solver.stats.iterations.alpha_du(2:end); 

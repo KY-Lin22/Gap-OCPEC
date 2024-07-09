@@ -16,7 +16,7 @@ Option.IPOPT_Solver.print_time = true;
 Option.IPOPT_Solver.record_time = true;
 Option.IPOPT_Solver.ipopt.print_level = 3;
 % tolerance
-Option.IPOPT_Solver.ipopt.tol = 1e-2;% default 1e-8
+Option.IPOPT_Solver.ipopt.tol = 1e-4;% default 1e-8
 % Option.IPOPT_Solver.ipopt.compl_inf_tol = 1e-4; % default 1e-4
 Option.IPOPT_Solver.ipopt.max_iter = 3000; % default 3000
 Option.IPOPT_Solver.ipopt.hessian_approximation = 'exact'; % 'exact' (default), 'limited-memory'
@@ -25,21 +25,21 @@ Option.IPOPT_Solver.ipopt.mu_strategy = 'monotone'; % default: 'monotone', 'adap
 % Option.IPOPT_Solver.ipopt.mu_min = 5e-3; % default 0 (for 'adaptive' mu strategy, need to specified by 0.5*sigma_Init^2)
 
 %% Option for stage 2: solve differential equation
-% fictitious time and stabilization parameter
-Option.Continuation.dtau = 0.001;
-Option.Continuation.epsilon = 1000;
-% method to integrating the differential equation
+% Continuation (relaxation and smoothing parameter)
+Option.Continuation.s_Init = 1e0;
+Option.Continuation.s_End = 1e-12;
+Option.Continuation.sigma_Init = 1e-2;
+Option.Continuation.sigma_End = 1e-6;
+% stabilization parameter for KKT and parameter dynamics
+Option.Continuation.epsilon_T = 100;
+Option.Continuation.epsilon_p = 50; 
+% fictitious integration timestep and number of integration step (continuation step)
+Option.Continuation.dtau = 0.01;
+Option.Continuation.l_Max = 500;
+% explicit method to integrating the KKT differential equation
 Option.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
 % tolerance
 Option.Continuation.tol.KKT_error = 1e-4;
-Option.Continuation.tol.VI_nat_res = 1e-4;
-% Continuation (relaxation parameter)
-Option.Continuation.kappa_s_times = 0.8; % update
-Option.Continuation.kappa_s_exp = 1; % update
-% Continuation (smoothing parameter)
-Option.Continuation.sigma_Init = 1e-2;
-Option.Continuation.sigma_End = 1e-6;
-Option.Continuation.kappa_sigma_times = 0.8; % update
-Option.Continuation.kappa_sigma_exp = 1; % update
+Option.Continuation.tol.VI_nat_res = 1e-2;
 
 end

@@ -36,19 +36,19 @@ classdef DynSys_Based_Solver < handle
         FuncObj = create_FuncObj(self) 
 
         % main function of solver using dynamical system method
-        [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
-
-        % create parameter and its time derivative sequence
-        [P, P_dot, l_Max] = create_parameter_sequence(self, s_Init, s_End);
+        [z_Opt, Info] = solve_NLP(self, z_Init)
 
         % evaluate natural residual
         natRes = evaluate_natural_residual(self, z_Opt)
 
         % stage 1: evaluate first iterate by solving first parameterized NLP
-        [Y, Info] = solve_first_NLP(self, z_Init, p)
+        [Y, Info] = solve_first_NLP(self, z_Init, p_Init)
+
+        % stage 2: evaluate new parameter by integrating a differential equation
+        p_l = evaluate_new_parameter(self, p, dtau)
 
         % stage 2: evaluate new iterate by integrating a differential equation
-        [Y_l, Info] = integrate_differential_equation(self, Y, Y_dot, p, p_dot, p_l, p_dot_l)
+        [Y_l, Info] = evaluate_new_iterate(self, Y, p, dtau)
 
     end
 

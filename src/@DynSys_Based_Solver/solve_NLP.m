@@ -1,4 +1,4 @@
-function [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
+function [z_Opt, Info] = solve_NLP(self, z_Init)
 % solve parameterized NLP by solver using dynamical system method
 % NLP has the form:
 %  min  J(z),
@@ -8,40 +8,31 @@ function [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
 %        s is the parameter,
 %        J is the cost, and h, c are the constraints
 % Syntax:
-%          [z_Opt, Info] = solve_NLP(self, z_Init, s_Init, s_End)
-%          [z_Opt, Info] = self.solve_NLP(z_Init, s_Init, s_End)
+%          [z_Opt, Info] = solve_NLP(self, z_Init)
+%          [z_Opt, Info] = self.solve_NLP(z_Init)
 % Argument:
 %          z_Init: double, NLP.Dim.z X 1, initial guess
-%          s_Init: double, relaxation parameter (initial)
-%          s_End: double, relaxation parameter (end)
 % Output:
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information
 import casadi.*
 
 %% check input
-% check input z_Init
 if ~all(size(z_Init) == [self.NLP.Dim.z, 1])
     error('z_Init has wrong dimension')
-end
-% check relaxation parameter 
-if (~isscalar(s_Init)) || (s_Init < 0)
-    error('s_Init should be a nonnegative scalar')
-end
-if (~isscalar(s_End)) || (s_End < 0)
-    error('s_End should be a nonnegative scalar')
-end
-if s_Init < s_End
-    error('s_Init should not smaller than s_End')
 end
 
 %% Initialization
 % Y node (z, gamma_h, gamma_c)
 Y_Node = cumsum([self.NLP.Dim.z, self.NLP.Dim.h, self.NLP.Dim.c]);
-% create parameter sequence
-[P, P_dot, l_Max] = self.create_parameter_sequence(s_Init, s_End);
+% load parameter
+dtau = self.Option.Continuation.dtau;
+l_Max = self.Option.Continuation.l_Max;
+s_Init = self.Option.Continuation.s_Init;
+sigma_Init = self.Option.Continuation.sigma_Init;
+p_Init = [s_Init; sigma_Init];
 % create record
-Log.param      = zeros(l_Max + 1, 2); % [s, sigma]
+Log.p          = zeros(l_Max + 1, 2); % [s, sigma]
 Log.p_dot      = zeros(l_Max + 1, 1);
 Log.Y_dot      = zeros(l_Max + 1, 1);
 Log.cost       = zeros(l_Max + 1, 1);
@@ -51,73 +42,60 @@ Log.VI_nat_res = zeros(l_Max + 1, 1);
 Log.time       = zeros(l_Max + 1, 1); 
 
 %% continuation loop (l: continuation step counter, Y_l: current iterate, Y: previous iterate)
-% continuously update Y, Y_dot, p, p_dot
-Y = zeros(Y_Node(3), 1);
-Y_dot = zeros(Y_Node(3), 1);
-p = zeros(2, 1);
-p_dot = zeros(2, 1);
 l = 0;
+% continuously update p_l and Y_l
 while true
     %% step 1: evaluate iterate at current continuation step
-    % specify parameter p_l and its time derivative p_dot_l
-    p_l = P(:, l + 1);    
-    p_dot_l = P_dot(:, l + 1);
-    % evaluate iterate Y_l
     if l == 0
-        % evaluate first iterate by solving first parameterized NLP
-        [Y_l, Info_firstNLP] = self.solve_first_NLP(z_Init, p_l);
+        % initialize first parameter p_l and iterate Y_l (solve first parameterized NLP)
+        p_l = p_Init;             
+        [Y_l, Info_firstNLP] = self.solve_first_NLP(z_Init, p_Init);
         terminal_status_l = Info_firstNLP.terminal_status;
         terminal_msg_l = Info_firstNLP.terminal_msg;
-        timeElasped_Y = Info_firstNLP.time;
+        timeElasped_l = Info_firstNLP.time;
     else
-        % evaluate new iterate by integrating a differential equation
-        [Y_l, Info_integrator] = self.integrate_differential_equation(Y, Y_dot, p, p_dot, p_l, p_dot_l);        
+        % evaluate new parameter p_l and iterate Y_l (integrating a differential equation)
+        p_l = self.evaluate_new_parameter(p, dtau);
+        [Y_l, Info_integrator] = self.evaluate_new_iterate(Y, p, dtau);        
         terminal_status_l = Info_integrator.terminal_status;
         terminal_msg_l = Info_integrator.terminal_msg; 
-        timeElasped_Y = Info_integrator.time;
+        timeElasped_l = Info_integrator.time;
     end
-    % evaluate time derivative of iterate Y_dot_l
-    timeStart_Y_dot = tic;
-    Y_dot_l = full(self.FuncObj.Y_dot(Y_l, p_l, p_dot_l));
-    timeElasped_Y_dot = toc(timeStart_Y_dot);
 
     %% step 2: record and print information of the current continuation step
+    % KKT residual (FB reformulation)
+    KKT_residual_l = full(self.FuncObj.KKT_residual(Y_l, p_l)); 
     % extract variable and parameter
     z_l       = Y_l(            1 : Y_Node(1), 1);
     gamma_c_l = Y_l(Y_Node(2) + 1 : Y_Node(3), 1);
     s_l       = p_l(1);
-    % some quantities of current iterate
+    % some NLP quantities
     J_l = full(self.FuncObj.J(z_l));
-    c_l = full(self.FuncObj.c(z_l, s_l));
-    KKT_residual_l = full(self.FuncObj.KKT_residual(Y_l, p_l));    
-    LAG_grad_l = KKT_residual_l(            1 : Y_Node(1), 1);
-    h_l        = KKT_residual_l(Y_Node(1) + 1 : Y_Node(2), 1); 
-    KKT_res_l = norm(KKT_residual_l, inf);
+    c_l = full(self.FuncObj.c(z_l, s_l));      
     KKT_error_l = norm([...
-        LAG_grad_l;...
-        h_l;...
+        KKT_residual_l(1 : Y_Node(2), 1);... % LAG_grad_l and h
         min([zeros(self.NLP.Dim.c, 1), c_l], [], 2);...
         min([zeros(self.NLP.Dim.c, 1), gamma_c_l], [], 2);...
         c_l .* gamma_c_l], inf);
     VI_nat_res_l = self.evaluate_natural_residual(z_l);
     % record
-    Log.param(l + 1, :) = p_l';  
-    Log.p_dot(l + 1, :) = norm(p_dot_l, inf);
-    Log.Y_dot(l + 1, :) = norm(Y_dot_l, inf);
+    Log.p(l + 1, :) = p_l';  
+    Log.p_dot(l + 1, :) = norm(full(self.FuncObj.p_dot(p_l)), inf);
+    Log.Y_dot(l + 1, :) = norm(full(self.FuncObj.Y_dot(Y_l, p_l)), inf);
     Log.cost(l + 1, :) = J_l;
-    Log.KKT_res(l + 1, :) = KKT_res_l;
+    Log.KKT_res(l + 1, :) = norm(KKT_residual_l, inf);
     Log.KKT_error(l + 1, :) = KKT_error_l;
     Log.VI_nat_res(l + 1, :) = VI_nat_res_l;
-    Log.time(l + 1, :) = timeElasped_Y + timeElasped_Y_dot;
+    Log.time(l + 1, :) = timeElasped_l;
     % print
     if mod(l, 10) ==  0
         disp('--------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = '  StepNum |    s     |   sigma  |   p_dot  |   Y_dot  |   cost   | KKT_res  | KKT_error | VI_nat_res | time[s] ';
+        headMsg = '   StepNum  |   p = [s; sigma]  |   p_dot  |   Y_dot  |   cost   | KKT_res  | KKT_error | VI_nat_res | time[s] ';
         disp(headMsg)
     end
     continuation_Step_Msg = ['  ',...
-        num2str(l,'%10.3d'), '/', num2str(l_Max,'%10.3d'),' | ',...
-        num2str(Log.param(l + 1, 1), '%10.2e'),' | ', num2str(Log.param(l + 1, 2), '%10.2e'),' | ',...
+        num2str(l,'%10.4d'), '/', num2str(l_Max,'%10.4d'),' | ',...
+        num2str(Log.p(l + 1, 1), '%10.2e'),' ', num2str(Log.p(l + 1, 2), '%10.2e'),' | ',...
         num2str(Log.p_dot(l + 1),'%10.2e'), ' | ',...
         num2str(Log.Y_dot(l + 1),'%10.2e'), ' | ',...
         num2str(Log.cost(l + 1),'%10.2e'), ' | ',...
@@ -145,11 +123,9 @@ while true
         break
     else
         % this continuation step finds the optimal solution, prepare for next step
-        Y = Y_l;
-        Y_dot = Y_dot_l;
-        p = p_l;
-        p_dot = p_dot_l;
         l = l + 1;
+        Y = Y_l;
+        p = p_l;
     end
 
 end

@@ -12,9 +12,7 @@ gamma_c = MX.sym('gamma_c', self.NLP.Dim.c, 1);
 sigma = MX.sym('sigma', 1, 1);
 % vector that collects variable and parameter
 Y = [self.NLP.z; gamma_h; gamma_c];
-p = [self.NLP.s, sigma];
-% p_dot
-p_dot = MX.sym('p_dot', 2, 1);
+p = [self.NLP.s; sigma];
 
 %% IPOPT solver for solving the first parameterized NLP
 NLP_Prob = struct('x', self.NLP.z, 'f', self.NLP.J, 'g', [self.NLP.h; self.NLP.c], 'p', self.NLP.s); 
@@ -55,11 +53,11 @@ end
 
 %% perturbed system of equation for complementarity between inequality constraint and its dual variable 
 % smooth FB function
-a = SX.sym('a', self.NLP.Dim.c, 1);
-b = SX.sym('b', self.NLP.Dim.c, 1);
+a_SX = SX.sym('a', self.NLP.Dim.c, 1);
+b_SX = SX.sym('b', self.NLP.Dim.c, 1);
 sigma_SX = SX.sym('sigma', 1, 1);
-psi = sqrt(a.^2 + b.^2 + sigma_SX.^2) - a - b;
-psi_FuncObj = Function('psi', {a, b, sigma_SX}, {psi}, {'a', 'b', 'sigma'}, {'psi'});
+psi = sqrt(a_SX.^2 + b_SX.^2 + sigma_SX.^2) - a_SX - b_SX;
+psi_FuncObj = Function('psi', {a_SX, b_SX, sigma_SX}, {psi}, {'a', 'b', 'sigma'}, {'psi'});
 % PSI function
 PSI = psi_FuncObj(self.NLP.c, gamma_c, sigma);
 % PSI jacobian
@@ -91,9 +89,19 @@ sensitivity_matrix = ...
     MX(self.NLP.Dim.h, 1),  MX(self.NLP.Dim.h, 1);...
     PSI_sensitivity_s,      PSI_sensitivity_sigma];
 
+%% differential equation for p
+epsilon_p = self.Option.Continuation.epsilon_p;
+
+s_End = self.Option.Continuation.s_End;
+sigma_End = self.Option.Continuation.sigma_End;
+p_End = [s_End; sigma_End];
+
+p_dot = -epsilon_p*(p - p_End);
+FuncObj.p_dot = Function('p_dot', {p}, {p_dot}, {'p'}, {'p_dot'});
+
 %% differential equation for Y
-epsilon = self.Option.Continuation.epsilon;
-Y_dot = KKT_matrix\(-epsilon * KKT_residual - sensitivity_matrix * p_dot);
-FuncObj.Y_dot = Function('Y_dot', {Y, p, p_dot}, {Y_dot}, {'Y', 'p', 'p_dot'}, {'Y_dot'});
+epsilon_T = self.Option.Continuation.epsilon_T;
+Y_dot = KKT_matrix\(-epsilon_T * KKT_residual - sensitivity_matrix * p_dot);
+FuncObj.Y_dot = Function('Y_dot', {Y, p}, {Y_dot}, {'Y', 'p'}, {'Y_dot'});
 
 end

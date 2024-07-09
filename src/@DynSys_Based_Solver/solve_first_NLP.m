@@ -1,11 +1,11 @@
-function [Y, Info] = solve_first_NLP(self, z_Init, p)
+function [Y, Info] = solve_first_NLP(self, z_Init, p_Init)
 %UNTITLED25 Summary of this function goes here
 %   Detailed explanation goes here
 disp('---------------------------------------------------------------------------------------------------')
-% load relaxation parameter
-s = p(1);
+% load initial relaxation parameter
+s_Init = p_Init(1);
 % solve
-solution = self.FuncObj.IPOPT_Solver('x0', z_Init, 'p', s,...
+solution = self.FuncObj.IPOPT_Solver('x0', z_Init, 'p', s_Init,...
     'lbg', [zeros(self.NLP.Dim.h, 1); zeros(self.NLP.Dim.c, 1)],...
     'ubg', [zeros(self.NLP.Dim.h, 1); inf*ones(self.NLP.Dim.c, 1)]);
 % extract information

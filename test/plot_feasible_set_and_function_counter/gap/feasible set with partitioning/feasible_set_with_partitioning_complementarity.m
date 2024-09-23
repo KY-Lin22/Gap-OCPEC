@@ -7,13 +7,6 @@ c = 1;
 s = 0.1;
 plotPrimalGapConstraintSet(c, s)
 
-%% counter of generalized primal gap function
-clear all
-clc
-
-c = 1;
-plotPrimalGapFunContour(c)
-
 %% feasible set formed by relaxed generalized D gap constraint 
 clear all
 clc
@@ -23,13 +16,7 @@ b = 2; % b > a > 0
 s = 0.1;
 plotDGapConstraintSet(a, b, s)
 
-%% counter of generalized D gap function
-clear all
-clc
 
-a = 0.3;
-b = 2;
-plotDGapFunContour(a, b)
 
 %% sub function
 function plotPrimalGapConstraintSet(c, s)
@@ -89,43 +76,6 @@ hold on
 axis([x_lb, x_ub, y_lb, y_ub])
 xline(0, 'LineWidth', 1); 
 yline(0, 'LineWidth', 1);
-end
-
-function plotPrimalGapFunContour(c)
-% parameter
-stepsize = 0.01;
-% data
-x = -1 : stepsize : 9;
-y = -5 : stepsize : 5;
-Z_surf = zeros(length(x), length(y));
-for i = 1 : length(x)
-    for j = 1 : length(y)
-        Z_surf(j, i) = 1/(2*c)*(y(j)^2 - (max([0, y(j) - c*x(i)]))^2);
-    end
-end
-% mesh and colour
-[X, Y] = meshgrid(x, y);
-C = 1.*Z_surf;
-figure(2)
-sfc_handle = surfc(X, Y, Z_surf, C, 'FaceAlpha',0.5, 'EdgeColor', 'none');
-contourProperty = sfc_handle(2);
-contourProperty.ContourZLevel = -max(max(Z_surf));
-contourProperty.LineWidth = 1;
-contourProperty.LevelList = [1, 5, 10];
-contourProperty.ShowText = 'on';
-hold on
-colorbar
-% contour
-% surf
-% fsurf
-lighting gouraud;% best lighting algoithm for curved surfaces
-material shiny
-% sets the axis limits equal to the range of the data
-axis([x(1)-0.5, x(end)+0.5, y(1)-0.5, y(end)+0.5, contourProperty.ContourZLevel, max(max(Z_surf)) + 1] )
-% title('generalized primal Gap Function')
-xlabel('$\lambda$', 'Interpreter','latex')
-ylabel('$\eta$', 'Interpreter','latex')
-zlabel('$\varphi_{Au}$', 'Interpreter','latex')
 end
 
 function plotDGapConstraintSet(a, b, s)
@@ -213,42 +163,5 @@ xline(0, 'LineWidth', 1);
 yline(0, 'LineWidth', 1);
 end
 
-function plotDGapFunContour(a, b)
-% parameter
-stepsize = 0.01;
-% data
-x = -4 : stepsize : 6;
-y = -4 : stepsize : 6;
-Z_surf = zeros(length(x), length(y));
-for i = 1 : length(x)
-    for j = 1 : length(y)
-        Z_surf(j, i) = (b-a)/(2*a*b)*y(j)^2 - 1/(2*a)*(max([0, y(j)-a*x(i)]))^2 + 1/(2*b)*(max([0,y(j)-b*x(i)]))^2;
-    end
-end
-% mesh and colour
-[X, Y] = meshgrid(x, y);
-C = 1.*Z_surf;
-figure(3)
-sfc_handle = surfc(X, Y, Z_surf, C, 'FaceAlpha',0.5, 'EdgeColor', 'none');
-contourProperty = sfc_handle(2);
-contourProperty.ContourZLevel = -max(max(Z_surf));
-contourProperty.LineWidth = 1;
-contourProperty.LevelList = [1, 5, 10];
-contourProperty.ShowText = 'on';
-hold on
 
-colorbar
-% contour
-% surf
-% fsurf
-lighting gouraud;% best lighting algoithm for curved surfaces
-material shiny
-box on
-% sets the axis limits equal to the range of the data
-axis([x(1)-0.5, x(end)+0.5, y(1)-0.5, y(end)+0.5, contourProperty.ContourZLevel, max(max(Z_surf)) + 5] )
-% title('generalized D Gap Function')
-xlabel('$\lambda$', 'Interpreter','latex')
-ylabel('$\eta$', 'Interpreter','latex')
-zlabel('$\varphi^{ab}_{Au}$', 'Interpreter','latex')
-end
 

@@ -18,7 +18,7 @@ tauMax = max(performance_ratio_matrix(performance_ratio_matrix < inf),[],'all');
 performance_ratio_matrix_sorted(performance_ratio_matrix_sorted == inf) = tauMax;
 % plot
 lineStyles = {'-','--',':','-.'};
-X_limit = 2*tauMax;
+X_limit = 10*tauMax;
 figure(1)
 for i = 1 : n_s
     p_r_mat_i = performance_ratio_matrix(:, i);
@@ -40,6 +40,7 @@ legend(solver_name,'Location','southeast');
 set(gca, 'XScale', 'log');
 xlim([1 X_limit]);
 ylim([0 1]);
-xlabel('\tau')
-ylabel('fraction of problem solved')
+% xlabel('\tau')
+xlabel('performance ratio', 'Interpreter','latex', 'FontSize', 11)
+ylabel('fraction of problem solved', 'Interpreter','latex', 'FontSize', 11)
 end

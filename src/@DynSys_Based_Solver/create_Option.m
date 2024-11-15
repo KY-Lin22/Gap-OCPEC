@@ -16,7 +16,7 @@ Option.IPOPT_Solver.print_time = true;
 Option.IPOPT_Solver.record_time = true;
 Option.IPOPT_Solver.ipopt.print_level = 3;
 % tolerance
-Option.IPOPT_Solver.ipopt.tol = 1e-4;% default 1e-8
+Option.IPOPT_Solver.ipopt.tol = 1e-8;% default 1e-8
 % Option.IPOPT_Solver.ipopt.compl_inf_tol = 1e-4; % default 1e-4
 Option.IPOPT_Solver.ipopt.max_iter = 3000; % default 3000
 Option.IPOPT_Solver.ipopt.hessian_approximation = 'exact'; % 'exact' (default), 'limited-memory'
@@ -32,7 +32,7 @@ Option.Continuation.sigma_Init = 1e-2;
 Option.Continuation.sigma_End = 1e-6;
 % stabilization parameter for KKT and parameter dynamics
 Option.Continuation.epsilon_T = 100;
-Option.Continuation.epsilon_p = 50; 
+Option.Continuation.epsilon_p = 10; 
 % fictitious integration timestep and number of integration step (continuation step)
 Option.Continuation.dtau = 0.01;
 Option.Continuation.l_Max = 500;

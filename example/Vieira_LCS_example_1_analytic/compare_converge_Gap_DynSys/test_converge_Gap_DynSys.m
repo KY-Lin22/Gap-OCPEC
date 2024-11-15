@@ -3,7 +3,7 @@ clc
 
 %% create OCPEC (all simulation use the same OCPEC)
 timeHorizon = 1;
-nStages = 1000;
+nStages = 100;
 OCPEC = OCPEC_Vieira_LCS_analytic();
 OCPEC.timeHorizon = timeHorizon;
 OCPEC.nStages = nStages;
@@ -13,14 +13,14 @@ OCPEC.timeStep = OCPEC.timeHorizon ./ OCPEC.nStages;
 % primal gap parameter
 param_c = {1};
 % D gap parameter
-param_a = {0.1, 0.3, 0.5, 0.7, 0.9};
-param_b = {10,  3.3, 2,   1.4, 1.1};
+param_a = {0.1,  0.5, 0.9};
+param_b = {10,   2,   1.1};
 
 %% create solver set (gap, DynSys_Based)
 % solver option
 Solver_option_gap_DynSys = DynSys_Based_Solver.create_Option();
 Solver_option_gap_DynSys.Continuation.s_Init = 1e0;
-Solver_option_gap_DynSys.Continuation.s_End = 1e-12;
+Solver_option_gap_DynSys.Continuation.s_End = 1e-6;
 Solver_option_gap_DynSys.Continuation.sigma_Init = 1e-2;
 Solver_option_gap_DynSys.Continuation.sigma_End = 1e-6;
 Solver_option_gap_DynSys.Continuation.epsilon_T = 100;

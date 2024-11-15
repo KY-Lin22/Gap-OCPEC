@@ -46,12 +46,13 @@ for i = 1 : numel(param_c)
     'gap_constraint_relaxation_strategy', 'generalized_primal_gap',...
     'gap_func_implementation', 'symbolic',...
     'primal_gap_param_c', param_c{i});    
-    primal_gap_name{end + 1} =  ['Gap (primal, c = ' num2str(param_c{i}) ')'];
+    % primal_gap_name{end + 1} =  ['Gap (primal, c = ' num2str(param_c{i}) ')'];
+    primal_gap_name{end + 1} =  'Gap (primal)';
 end
 
 % D gap
-param_a = {0.1, 0.3, 0.5, 0.7, 0.9};
-param_b = {10,  3.3, 2,   1.4, 1.1};
+param_a = {0.1, 0.5, 0.9};
+param_b = {10,  2,   1.1};
 D_gap_name = {};
 for i = 1 : numel(param_a)
     NLP_option_set{end + 1} = struct('relaxation_problem', 'gap_constraint_based',...
@@ -61,27 +62,12 @@ for i = 1 : numel(param_a)
     D_gap_name{end + 1} = ['Gap (D, a = ' num2str(param_a{i}) ', b = ' num2str(param_b{i}) ')'];
 end
 
-%% solver option set
-% DynSys-Based integration method
-integration_method = 'explitic_Euler'; % 'explitic_Euler', 'RK4'
-% dynamical system parameter
-dtau = 0.001;
-epsilon = 1000;
+%% common solver option set
 % tolerance
-KKT_error_tol = 1e-4;
 VI_nat_res_tol = 1e-2;
 % relaxation parameter init and end value
 s_Init = 1e0;
-s_End = 1e-12;
-% FB smoothing parameter init and end value
-sigma_Init = 1e-2;
-sigma_End = 1e-6;
-% parameter update
-kappa_s_times_KKT = 0.1;% fast
-kappa_s_times_gap = 0.9;% slow
-kappa_s_exp = 1.0;
-kappa_sigma_times = 0.9;
-kappa_sigma_exp = 1.0;
+s_End = 1e-6;
 
 % init
 solver_option_set = {};
@@ -90,8 +76,10 @@ solver_type = {};
 
 % IPOPT-based solver for KKT reformulation
 Solver_option_KKT_IPOPT = IPOPT_Based_Solver.create_Option();
-Solver_option_KKT_IPOPT.Continuation.kappa_s_times = kappa_s_times_KKT;
-Solver_option_KKT_IPOPT.Continuation.kappa_s_exp = kappa_s_exp;
+Solver_option_KKT_IPOPT.Continuation.s_Init = s_Init;
+Solver_option_KKT_IPOPT.Continuation.s_End = s_End;
+Solver_option_KKT_IPOPT.Continuation.kappa_s_times = 0.5;% middle update
+Solver_option_KKT_IPOPT.Continuation.kappa_s_exp = 1.0;
 Solver_option_KKT_IPOPT.Continuation.tol.VI_nat_res = VI_nat_res_tol;
 
 for i = 1 : (numel(KKT_relaxation_strategy))
@@ -102,17 +90,17 @@ end
 
 % DynSys-based solver for primal gap reformulation
 Solver_option_gap_DynSys = DynSys_Based_Solver.create_Option();
-Solver_option_gap_DynSys.Continuation.dtau = dtau;
-Solver_option_gap_DynSys.Continuation.epsilon = epsilon;
-Solver_option_gap_DynSys.Continuation.integration_method = integration_method;
-Solver_option_gap_DynSys.Continuation.tol.KKT_error = KKT_error_tol;
+Solver_option_gap_DynSys.Continuation.s_Init = s_Init;
+Solver_option_gap_DynSys.Continuation.s_End = s_End;
+Solver_option_gap_DynSys.Continuation.sigma_Init = 1e-2;
+Solver_option_gap_DynSys.Continuation.sigma_End = 1e-6;
+Solver_option_gap_DynSys.Continuation.epsilon_T = 100;
+Solver_option_gap_DynSys.Continuation.epsilon_p = 10; % 10 is the best, 5 is good
+Solver_option_gap_DynSys.Continuation.dtau = 0.01;
+Solver_option_gap_DynSys.Continuation.l_Max = 500;
+Solver_option_gap_DynSys.Continuation.integration_method = 'explitic_Euler'; % 'explitic_Euler', 'RK4'
+Solver_option_gap_DynSys.Continuation.tol.KKT_error = 1e-4;
 Solver_option_gap_DynSys.Continuation.tol.VI_nat_res = VI_nat_res_tol;
-Solver_option_gap_DynSys.Continuation.kappa_s_times = kappa_s_times_gap;
-Solver_option_gap_DynSys.Continuation.kappa_s_exp = kappa_s_exp;
-Solver_option_gap_DynSys.Continuation.sigma_Init = sigma_Init;
-Solver_option_gap_DynSys.Continuation.sigma_End = sigma_End;
-Solver_option_gap_DynSys.Continuation.kappa_sigma_times = kappa_sigma_times;
-Solver_option_gap_DynSys.Continuation.kappa_sigma_exp = kappa_sigma_exp;
 
 for i = 1 : numel(param_c)
     solver_option_set{end + 1} = Solver_option_gap_DynSys;
@@ -131,11 +119,6 @@ end
 solver_set = create_solver_set(OCPEC_func_handle, nStages_sequ, NLP_option_set, solver_option_set, solver_type);
 
 %% run test
-param_set = {};
-for i = 1 : (numel(KKT_relaxation_strategy) + numel(param_c) + numel(param_a))
-    param_set{end + 1} = struct('s_Init', s_Init, 's_End', s_End);
-end
-% solve
-Rec = run_solver_test(solver_set, param_set);
+Rec = run_solver_test(solver_set);
 
 end

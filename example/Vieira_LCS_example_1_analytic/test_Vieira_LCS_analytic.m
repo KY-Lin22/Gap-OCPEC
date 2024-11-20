@@ -6,7 +6,7 @@ clc
 OCPEC = OCPEC_Vieira_LCS_analytic();
 
 % discretize OCPEC into a NLP problem
-NLP_option.relaxation_problem = 'KKT_based'; % 'gap_constraint_based', 'KKT_based'
+NLP_option.relaxation_problem = 'gap_constraint_based'; % 'gap_constraint_based', 'KKT_based'
 NLP_option.gap_constraint_relaxation_strategy = 'generalized_primal_gap'; % 'generalized_primal_gap', 'generalized_D_gap'
 NLP_option.KKT_complementarity_relaxation_strategy = 'Scholtes'; % 'Scholtes', 'Lin_Fukushima', 'Kadrani', 'Steffensen_Ulbrich', 'Kanzow_Schwartz'
 NLP_option.gap_func_implementation = 'symbolic'; % 'symbolic', 'codegen_fd', 'codegen_jac'

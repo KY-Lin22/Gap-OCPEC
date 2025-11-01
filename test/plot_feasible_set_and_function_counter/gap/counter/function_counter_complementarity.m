@@ -55,7 +55,7 @@ set(gca, 'FontSize', 20)
 % title('generalized primal Gap Function')
 xlabel('$\lambda$', 'Interpreter','latex', 'FontSize', 20)
 ylabel('$\eta$', 'Interpreter','latex', 'FontSize', 20)
-zlabel('$\varphi_{Au}$', 'Interpreter','latex', 'FontSize', 20)
+zlabel('$\varphi^c_{Au}$', 'Interpreter','latex', 'FontSize', 20)
 end
 
 function plot_D_gap_fun_contour(a, b, counter_level)

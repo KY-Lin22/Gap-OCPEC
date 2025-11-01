@@ -68,7 +68,7 @@ plot([origin_x, x_ub], [-nodePoint1_y, -nodePoint1_y], 'k', 'LineWidth', 3)
 hold on
 plot(bound_y_cx_x, bound_y_cx_y, 'k', 'LineStyle', '--', 'LineWidth', 3 )
 hold on
-text(0.8, 0.8, '$\eta = \lambda$', 'Interpreter','latex', 'FontSize', 20)
+text(0.8, 0.8, '$\eta = c \lambda$', 'Interpreter','latex', 'FontSize', 20)
 %text(0.5, 0.5, '$(\sqrt{2s}, \sqrt{2s})$', 'Interpreter','latex', 'FontSize', 20)
 %text(0, -0.5, '$(0, -\sqrt{2s})$', 'Interpreter','latex', 'FontSize', 20)
 axis([x_lb, x_lb + 1.5, y_lb, y_lb + 1.5])

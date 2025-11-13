@@ -28,11 +28,9 @@ Option.IPOPT_Solver.ipopt.mu_strategy = 'monotone'; % default: 'monotone', 'adap
 % Continuation (relaxation and smoothing parameter)
 Option.Continuation.s_Init = 1e0;
 Option.Continuation.s_End = 1e-12;
-Option.Continuation.sigma_Init = 1e-2;
-Option.Continuation.sigma_End = 1e-6;
 % stabilization parameter for KKT and parameter dynamics
 Option.Continuation.epsilon_T = 100;
-Option.Continuation.epsilon_p = 10; 
+Option.Continuation.epsilon_s = 10; 
 % fictitious integration timestep and number of integration step (continuation step)
 Option.Continuation.dtau = 0.01;
 Option.Continuation.l_Max = 500;

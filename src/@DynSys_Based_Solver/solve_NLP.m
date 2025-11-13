@@ -23,17 +23,15 @@ if ~all(size(z_Init) == [self.NLP.Dim.z, 1])
 end
 
 %% Initialization
-% Y node (z, gamma_h, gamma_c)
-Y_Node = cumsum([self.NLP.Dim.z, self.NLP.Dim.h, self.NLP.Dim.c]);
+% Y node (z, v_c, gamma_h, gamma_c)
+Y_Node = cumsum([self.NLP.Dim.z, self.NLP.Dim.c, self.NLP.Dim.h, self.NLP.Dim.c]);
 % load parameter
 dtau = self.Option.Continuation.dtau;
 l_Max = self.Option.Continuation.l_Max;
 s_Init = self.Option.Continuation.s_Init;
-sigma_Init = self.Option.Continuation.sigma_Init;
-p_Init = [s_Init; sigma_Init];
 % create record
-Log.p          = zeros(l_Max + 1, 2); % [s, sigma]
-Log.p_dot      = zeros(l_Max + 1, 1);
+Log.s          = zeros(l_Max + 1, 1); 
+Log.s_dot      = zeros(l_Max + 1, 1);
 Log.Y_dot      = zeros(l_Max + 1, 1);
 Log.cost       = zeros(l_Max + 1, 1);
 Log.KKT_res    = zeros(l_Max + 1, 1);
@@ -47,16 +45,16 @@ l = 0;
 while true
     %% step 1: evaluate iterate at current continuation step
     if l == 0
-        % initialize first parameter p_l and iterate Y_l (solve first parameterized NLP)
-        p_l = p_Init;             
-        [Y_l, Info_firstNLP] = self.solve_first_NLP(z_Init, p_Init);
+        % initialize first parameter s_l and iterate Y_l (solve first parameterized NLP)
+        s_l = s_Init;             
+        [Y_l, Info_firstNLP] = self.solve_first_NLP(z_Init, s_Init);
         terminal_status_l = Info_firstNLP.terminal_status;
         terminal_msg_l = Info_firstNLP.terminal_msg;
         timeElasped_l = Info_firstNLP.time;
     else
-        % evaluate new parameter p_l and iterate Y_l (integrating a differential equation)
-        p_l = self.evaluate_new_parameter(p, dtau);
-        [Y_l, Info_integrator] = self.evaluate_new_iterate(Y, p, dtau);        
+        % evaluate new parameter s_l and iterate Y_l (integrating a differential equation)
+        s_l = self.evaluate_new_parameter(s, dtau);
+        [Y_l, Info_integrator] = self.evaluate_new_iterate(Y, s, dtau);        
         terminal_status_l = Info_integrator.terminal_status;
         terminal_msg_l = Info_integrator.terminal_msg; 
         timeElasped_l = Info_integrator.time;
@@ -64,24 +62,23 @@ while true
 
     %% step 2: record and print information of the current continuation step
     % KKT residual (FB reformulation)
-    KKT_residual_l = full(self.FuncObj.KKT_residual(Y_l, p_l)); 
+    KKT_residual_l = full(self.FuncObj.KKT_residual(Y_l, s_l)); 
     % extract variable and parameter
     z_l       = Y_l(            1 : Y_Node(1), 1);
-    gamma_c_l = Y_l(Y_Node(2) + 1 : Y_Node(3), 1);
-    s_l       = p_l(1);
+    v_c_l     = Y_l(Y_Node(1) + 1 : Y_Node(2), 1);
+    gamma_c_l = Y_l(Y_Node(3) + 1 : Y_Node(4), 1);
     % some NLP quantities
-    J_l = full(self.FuncObj.J(z_l));
-    c_l = full(self.FuncObj.c(z_l, s_l));      
+    J_l = full(self.FuncObj.J(z_l));     
     KKT_error_l = norm([...
-        KKT_residual_l(1 : Y_Node(2), 1);... % LAG_grad_l and h
-        min([zeros(self.NLP.Dim.c, 1), c_l], [], 2);...
+        KKT_residual_l(1 : Y_Node(3), 1);... % LAG_grad_l, h and c - v_c
+        min([zeros(self.NLP.Dim.c, 1), v_c_l], [], 2);...
         min([zeros(self.NLP.Dim.c, 1), gamma_c_l], [], 2);...
-        c_l .* gamma_c_l], inf);
+        v_c_l .* gamma_c_l], inf);
     VI_nat_res_l = norm(self.evaluate_natural_residual(z_l), inf);
     % record
-    Log.p(l + 1, :) = p_l';  
-    Log.p_dot(l + 1, :) = norm(full(self.FuncObj.p_dot(p_l)), inf);
-    Log.Y_dot(l + 1, :) = norm(full(self.FuncObj.Y_dot(Y_l, p_l)), inf);
+    Log.s(l + 1, :) = s_l;  
+    Log.s_dot(l + 1, :) = abs(full(self.FuncObj.s_dot(s_l)));
+    Log.Y_dot(l + 1, :) = norm(full(self.FuncObj.Y_dot(Y_l, s_l)), inf);
     Log.cost(l + 1, :) = J_l;
     Log.KKT_res(l + 1, :) = norm(KKT_residual_l, 2)/self.OCPEC.nStages;
     Log.KKT_error(l + 1, :) = KKT_error_l;
@@ -90,13 +87,13 @@ while true
     % print
     if mod(l, 10) ==  0
         disp('--------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = '   StepNum  |   p = [s; sigma]  |   p_dot  |   Y_dot  |   cost   | KKT_res  | KKT_error | VI_nat_res | time[s] ';
+        headMsg = '   StepNum  |    s     |   s_dot  |   Y_dot  |   cost   | KKT_res  | KKT_error | VI_nat_res | time[s] ';
         disp(headMsg)
     end
     continuation_Step_Msg = ['  ',...
         num2str(l,'%10.4d'), '/', num2str(l_Max,'%10.4d'),' | ',...
-        num2str(Log.p(l + 1, 1), '%10.2e'),' ', num2str(Log.p(l + 1, 2), '%10.2e'),' | ',...
-        num2str(Log.p_dot(l + 1),'%10.2e'), ' | ',...
+        num2str(Log.s(l + 1), '%10.2e'), ' | ',...
+        num2str(Log.s_dot(l + 1),'%10.2e'), ' | ',...
         num2str(Log.Y_dot(l + 1),'%10.2e'), ' | ',...
         num2str(Log.cost(l + 1),'%10.2e'), ' | ',...
         num2str(Log.KKT_res(l + 1), '%10.2e'), ' | ',...
@@ -125,7 +122,7 @@ while true
         % this continuation step finds the optimal solution, prepare for next step
         l = l + 1;
         Y = Y_l;
-        p = p_l;
+        s = s_l;
     end
 
 end
@@ -133,8 +130,8 @@ end
 %% return optimal solution and create information
 % extract primal and dual variable
 z_l       = Y_l(            1 : Y_Node(1), 1);
-gamma_h_l = Y_l(Y_Node(1) + 1 : Y_Node(2), 1);
-gamma_c_l = Y_l(Y_Node(2) + 1 : Y_Node(3), 1);
+gamma_h_l = Y_l(Y_Node(2) + 1 : Y_Node(3), 1);
+gamma_c_l = Y_l(Y_Node(3) + 1 : Y_Node(4), 1);
 % return the current homotopy iterate as the optimal solution
 z_Opt = z_l;
 % create Info

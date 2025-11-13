@@ -42,13 +42,13 @@ classdef DynSys_Based_Solver < handle
         natRes = evaluate_natural_residual(self, z_Opt)
 
         % stage 1: evaluate first iterate by solving first parameterized NLP
-        [Y, Info] = solve_first_NLP(self, z_Init, p_Init)
+        [Y, Info] = solve_first_NLP(self, z_Init, s_Init)
 
         % stage 2: evaluate new parameter by integrating a differential equation
-        p_l = evaluate_new_parameter(self, p, dtau)
+        s_l = evaluate_new_parameter(self, s, dtau)
 
         % stage 2: evaluate new iterate by integrating a differential equation
-        [Y_l, Info] = evaluate_new_iterate(self, Y, p, dtau)
+        [Y_l, Info] = evaluate_new_iterate(self, Y, s, dtau)
 
     end
 

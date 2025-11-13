@@ -1,9 +1,7 @@
-function [Y, Info] = solve_first_NLP(self, z_Init, p_Init)
+function [Y, Info] = solve_first_NLP(self, z_Init, s_Init)
 %UNTITLED25 Summary of this function goes here
 %   Detailed explanation goes here
 disp('---------------------------------------------------------------------------------------------------')
-% load initial relaxation parameter
-s_Init = p_Init(1);
 % solve
 solution = self.FuncObj.IPOPT_Solver('x0', z_Init, 'p', s_Init,...
     'lbg', [zeros(self.NLP.Dim.h, 1); zeros(self.NLP.Dim.c, 1)],...
@@ -18,8 +16,10 @@ solver_status = (strcmp(self.FuncObj.IPOPT_Solver.stats.return_status, 'Solve_Su
 terminal_status = solver_status;
 terminal_msg = self.FuncObj.IPOPT_Solver.stats.return_status;
 time = self.FuncObj.IPOPT_Solver.stats.t_wall_total; % t_proc_total;
+% auxilary variable
+v_c = full(self.FuncObj.c(z, s_Init));
 % assemble Y
-Y = [z; gamma_h; gamma_c];
+Y = [z; v_c; gamma_h; gamma_c];
 % info
 Info.terminal_status = terminal_status;
 Info.terminal_msg = terminal_msg;

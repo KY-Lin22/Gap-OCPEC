@@ -2,15 +2,12 @@ clear all
 clc
 
 %%
-timeHorizon = 1;
-nStages = 100;
-OCPEC = OCPEC_Vieira_LCS_analytic();
-OCPEC.timeHorizon = timeHorizon;
-OCPEC.nStages = nStages;
-OCPEC.timeStep = OCPEC.timeHorizon ./ OCPEC.nStages;
-
 Data_converge_Gap_DynSys = load('Data_test_converge_Gap_DynSys');
 method_name = Data_converge_Gap_DynSys.rec.name;
+OCPEC = OCPEC_Vieira_LCS_analytic();
+OCPEC.timeHorizon = Data_converge_Gap_DynSys.rec.OCPEC.timeHorizon;
+OCPEC.nStages = Data_converge_Gap_DynSys.rec.OCPEC.nStages;
+OCPEC.timeStep = Data_converge_Gap_DynSys.rec.OCPEC.timeStep;
 lineStyles = {'-','--',':','-.'};
 
 %% VI nature residual, KKT error, time/step v.s. continuation step

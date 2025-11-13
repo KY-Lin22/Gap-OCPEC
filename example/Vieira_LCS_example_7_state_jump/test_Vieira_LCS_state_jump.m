@@ -32,16 +32,18 @@ switch solver_type
         % create DynSys_Based_Solver
         Solver_option = DynSys_Based_Solver.create_Option();
         Solver_option.Continuation.s_Init = 1e0;
-        Solver_option.Continuation.s_End = 1e-4;
-        Solver_option.Continuation.sigma_Init = 1e-2;
-        Solver_option.Continuation.sigma_End = 1e-3;
-        Solver_option.Continuation.epsilon_T = 50;
-        Solver_option.Continuation.epsilon_p = 5;
+        Solver_option.Continuation.s_End = 1e-3;
+        Solver_option.Continuation.epsilon_T = 100;
+        Solver_option.Continuation.epsilon_s = 10;
         Solver_option.Continuation.dtau = 0.01;
         Solver_option.Continuation.l_Max = 500;
-        Solver_option.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
+        Solver_option.Continuation.integration_method = 'explitic_Euler'; % 'explitic_Euler', 'RK4'
         Solver_option.Continuation.tol.KKT_error = 1e-4;
-        Solver_option.Continuation.tol.VI_nat_res = 1e-2;
+        Solver_option.Continuation.tol.VI_nat_res = 5e-2;
+        Solver_option.KKT.RegParam.nu_h = 1e-6; 
+        Solver_option.KKT.RegParam.nu_c = 1e-6; 
+        Solver_option.KKT.RegParam.nu_H = 1e-3; 
+        Solver_option.KKT.Hessian_approximation = 'Gauss_Newton'; % 'Exact', 'Gauss_Newton', 'Quasi_Newton'
         solver = DynSys_Based_Solver(OCPEC, NLP, Solver_option);
 end
 

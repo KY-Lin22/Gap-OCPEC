@@ -3,7 +3,7 @@ clc
 
 %% create OCPEC (all simulation use the same OCPEC)
 timeHorizon = 1;
-nStages = 100;
+nStages = 5000;
 OCPEC = OCPEC_Vieira_LCS_analytic();
 OCPEC.timeHorizon = timeHorizon;
 OCPEC.nStages = nStages;
@@ -20,14 +20,12 @@ param_b = {10,   2,   1.1};
 % solver option
 Solver_option_gap_DynSys = DynSys_Based_Solver.create_Option();
 Solver_option_gap_DynSys.Continuation.s_Init = 1e0;
-Solver_option_gap_DynSys.Continuation.s_End = 1e-6;
-Solver_option_gap_DynSys.Continuation.sigma_Init = 1e-2;
-Solver_option_gap_DynSys.Continuation.sigma_End = 1e-6;
+Solver_option_gap_DynSys.Continuation.s_End = 1e-3;
 Solver_option_gap_DynSys.Continuation.epsilon_T = 100;
-Solver_option_gap_DynSys.Continuation.epsilon_p = 10;
+Solver_option_gap_DynSys.Continuation.epsilon_s = 10;
 Solver_option_gap_DynSys.Continuation.dtau = 0.01;
 Solver_option_gap_DynSys.Continuation.l_Max = 500;
-Solver_option_gap_DynSys.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
+Solver_option_gap_DynSys.Continuation.integration_method = 'explitic_Euler'; % 'explitic_Euler', 'RK4'
 Solver_option_gap_DynSys.Continuation.tol.KKT_error = 1e-16;
 Solver_option_gap_DynSys.Continuation.tol.VI_nat_res = 1e-16;
 % init
@@ -64,6 +62,10 @@ end
 %% run test
 % init record
 rec.name = solver_name;
+rec.OCPEC.timeHorizon = OCPEC.timeHorizon;
+rec.OCPEC.nStages = OCPEC.nStages;
+rec.OCPEC.timeStep = OCPEC.timeStep;
+
 rec.z_Init = {};
 rec.z_Opt = {};
 rec.Info = {};

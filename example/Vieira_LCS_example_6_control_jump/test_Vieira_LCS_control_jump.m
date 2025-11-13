@@ -32,14 +32,12 @@ switch solver_type
         % create DynSys_Based_Solver
         Solver_option = DynSys_Based_Solver.create_Option();
         Solver_option.Continuation.s_Init = 1e0;
-        Solver_option.Continuation.s_End = 1e-12;
-        Solver_option.Continuation.sigma_Init = 1e-2;
-        Solver_option.Continuation.sigma_End = 1e-6;
+        Solver_option.Continuation.s_End = 1e-6;
         Solver_option.Continuation.epsilon_T = 100;
-        Solver_option.Continuation.epsilon_p = 10;
+        Solver_option.Continuation.epsilon_s = 10;
         Solver_option.Continuation.dtau = 0.01;
         Solver_option.Continuation.l_Max = 500;
-        Solver_option.Continuation.integration_method = 'RK4'; % 'explitic_Euler', 'RK4'
+        Solver_option.Continuation.integration_method = 'explitic_Euler'; % 'explitic_Euler', 'RK4'
         Solver_option.Continuation.tol.KKT_error = 1e-4;
         Solver_option.Continuation.tol.VI_nat_res = 1e-2;
         solver = DynSys_Based_Solver(OCPEC, NLP, Solver_option);

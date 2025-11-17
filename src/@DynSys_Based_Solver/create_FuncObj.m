@@ -88,7 +88,7 @@ sensitivity_matrix = ...
     c_sensitivity_s;...
     MX(self.NLP.Dim.c, 1)];
 
-%% differential equation for p
+%% differential equation for s
 epsilon_s = self.Option.Continuation.epsilon_s;
 s_End = self.Option.Continuation.s_End;
 

@@ -28,8 +28,12 @@ Option.IPOPT_Solver.ipopt.hessian_approximation = 'exact'; % 'exact' (default), 
 Option.Continuation.s_Init = 1e0;
 Option.Continuation.s_End = 1e-12;
 % update relaxation parameter
+Option.Continuation.update_rule = 'times_exp'; % 'times_exp', 'dynamics'
 Option.Continuation.kappa_s_times = 0.1; 
 Option.Continuation.kappa_s_exp = 1; 
+Option.Continuation.epsilon_s = 10;
+Option.Continuation.dtau = 0.01;
+Option.Continuation.l_Max = 500;
 % tolerance
 Option.Continuation.tol.VI_nat_res = 1e-4;
 
